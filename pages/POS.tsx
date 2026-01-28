@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Product, CartItem, Sale } from '../types';
 import { subscribeToProducts, saveSale } from '../services/storeService';
-import { ShoppingCart, Trash2, Plus, Minus, CheckCircle, Search } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, CheckCircle, Search, RotateCcw } from 'lucide-react';
 
 export const POS: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -36,6 +36,10 @@ export const POS: React.FC = () => {
 
   const removeFromCart = (id: string) => {
     setCart(cart.filter(item => item.id !== id));
+  };
+
+  const clearCart = () => {
+    setCart([]);
   };
 
   const updateQuantity = (id: string, delta: number) => {
@@ -122,7 +126,12 @@ export const POS: React.FC = () => {
               </div>
 
               <div>
-                <span className="text-xs font-black text-black bg-[#FFDE00] px-2 py-0.5 border border-black uppercase tracking-wide inline-block mb-2">{product.brand}</span>
+                {/* Only show brand badge if it's not the default 'General' or empty */}
+                {product.brand && product.brand !== 'General' && (
+                  <span className="text-xs font-black text-black bg-[#FFDE00] px-2 py-0.5 border border-black uppercase tracking-wide inline-block mb-2">
+                    {product.brand}
+                  </span>
+                )}
                 <h3 className="font-bold text-lg md:text-xl text-black leading-tight group-hover:text-[#FF5D01] transition-colors">{product.name}</h3>
               </div>
               
@@ -140,10 +149,19 @@ export const POS: React.FC = () => {
       {/* Cart Sidebar */}
       <div className="w-full lg:w-[420px] bg-white border-t-4 lg:border-t-0 lg:border-l-4 border-black flex flex-col h-[45vh] lg:h-full z-20 shadow-[-10px_0_20px_rgba(0,0,0,0.05)] relative shrink-0">
         {/* Receipt Header */}
-        <div className="p-3 md:p-6 border-b-4 border-black bg-[#FFDE00] relative">
+        <div className="p-3 md:p-6 border-b-4 border-black bg-[#FFDE00] relative flex justify-between items-center">
             <h3 className="font-black text-lg md:text-2xl flex items-center gap-3 text-black uppercase font-display transform -rotate-1">
                 <ShoppingCart className="text-black" size={24} strokeWidth={3} /> Current Order
             </h3>
+            {cart.length > 0 && (
+                <button 
+                    onClick={clearCart} 
+                    className="p-1 border border-black bg-white hover:bg-[#FF6B6B] hover:text-white transition-colors rounded shadow-[2px_2px_0px_0px_#000] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none"
+                    title="Clear Cart"
+                >
+                    <Trash2 size={16} strokeWidth={2.5} />
+                </button>
+            )}
             {/* Serrated edge visual trick */}
             <div className="absolute bottom-[-8px] left-0 w-full h-4 bg-transparent" style={{ backgroundImage: 'radial-gradient(circle, transparent 50%, #FFDE00 50%)', backgroundSize: '16px 16px', backgroundPosition: '0 -8px' }}></div>
         </div>
@@ -164,7 +182,9 @@ export const POS: React.FC = () => {
                 <div className="flex justify-between items-start mb-2 pr-4">
                   <div>
                     <h4 className="font-black text-base md:text-lg leading-none">{item.name}</h4>
-                    <p className="text-[10px] font-bold uppercase tracking-widest mt-1 bg-black text-white inline-block px-1">{item.brand}</p>
+                    {item.brand && item.brand !== 'General' && (
+                        <p className="text-[10px] font-bold uppercase tracking-widest mt-1 bg-black text-white inline-block px-1">{item.brand}</p>
+                    )}
                   </div>
                 </div>
                 

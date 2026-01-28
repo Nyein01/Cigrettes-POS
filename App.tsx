@@ -3,6 +3,7 @@ import { Sidebar } from './components/Sidebar';
 import { Inventory } from './pages/Inventory';
 import { POS } from './pages/POS';
 import { Reports } from './pages/Reports';
+import { Archive } from './pages/Archive';
 import { Menu, X } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -17,6 +18,8 @@ const App: React.FC = () => {
         return <POS />;
       case 'reports':
         return <Reports />;
+      case 'archive':
+        return <Archive />;
       default:
         return <POS />;
     }

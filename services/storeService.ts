@@ -8,12 +8,14 @@ import {
   onSnapshot, 
   writeBatch,
   query,
-  orderBy
+  orderBy,
+  getDocs
 } from 'firebase/firestore';
 import { Product, Sale } from '../types';
 
 const PRODUCTS_COLLECTION = 'products';
 const SALES_COLLECTION = 'sales';
+const ARCHIVE_COLLECTION = 'archived_sales';
 
 // --- Products (Real-time) ---
 
@@ -90,13 +92,7 @@ export const saveSale = async (sale: Sale): Promise<void> => {
     batch.set(saleRef, saleData);
 
     // 2. Decrement Stock for each item
-    // Note: In a high-concurrency environment, you might use runTransaction. 
-    // For this scale, writeBatch with numeric updates is usually sufficient, 
-    // but here we are just setting the new value calculated on client.
-    // Ideally, we read the server stock first.
     sale.items.forEach(item => {
-        // We assume the client has valid stock data. 
-        // Real-time listener ensures this is mostly true.
         const productRef = doc(db, PRODUCTS_COLLECTION, item.id);
         const newStock = Math.max(0, item.stock - item.quantity); // Calculate new stock
         batch.update(productRef, { stock: newStock });
@@ -108,6 +104,122 @@ export const saveSale = async (sale: Sale): Promise<void> => {
     throw error;
   }
 };
+
+// Clear all sales history (Async)
+export const clearSalesHistory = async (): Promise<void> => {
+  try {
+    const q = query(collection(db, SALES_COLLECTION));
+    const snapshot = await getDocs(q);
+    
+    // Firestore batch limit is 500 operations
+    const BATCH_SIZE = 500;
+    let batch = writeBatch(db);
+    let count = 0;
+
+    for (const doc of snapshot.docs) {
+        batch.delete(doc.ref);
+        count++;
+        if (count >= BATCH_SIZE) {
+            await batch.commit();
+            batch = writeBatch(db);
+            count = 0;
+        }
+    }
+    
+    if (count > 0) {
+        await batch.commit();
+    }
+  } catch (error) {
+    console.error("Error clearing sales history:", error);
+    throw error;
+  }
+};
+
+// --- Archive System ---
+
+// Archive Current Sales: Move from 'sales' to 'archived_sales'
+export const archiveCurrentSales = async (): Promise<void> => {
+  try {
+    const q = query(collection(db, SALES_COLLECTION));
+    const snapshot = await getDocs(q);
+    
+    const BATCH_SIZE = 250; // Smaller batch size because we do 2 ops per doc (set + delete)
+    let batch = writeBatch(db);
+    let count = 0;
+
+    for (const docSnapshot of snapshot.docs) {
+        const data = docSnapshot.data();
+        const newRef = doc(collection(db, ARCHIVE_COLLECTION), docSnapshot.id); // Keep same ID
+        
+        // Copy to archive
+        batch.set(newRef, data);
+        // Delete from current
+        batch.delete(docSnapshot.ref);
+
+        count++;
+        if (count >= BATCH_SIZE) {
+            await batch.commit();
+            batch = writeBatch(db);
+            count = 0;
+        }
+    }
+    
+    if (count > 0) {
+        await batch.commit();
+    }
+  } catch (error) {
+    console.error("Error archiving sales:", error);
+    throw error;
+  }
+};
+
+// Subscribe to Archived Sales
+export const subscribeToArchivedSales = (callback: (sales: Sale[]) => void) => {
+  const q = query(collection(db, ARCHIVE_COLLECTION), orderBy('date', 'desc'));
+  
+  return onSnapshot(q, (snapshot) => {
+    const sales = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Sale[];
+    callback(sales);
+  });
+};
+
+// Restore Archived Sales: Move from 'archived_sales' to 'sales'
+export const restoreArchivedSales = async (): Promise<void> => {
+  try {
+    const q = query(collection(db, ARCHIVE_COLLECTION));
+    const snapshot = await getDocs(q);
+    
+    const BATCH_SIZE = 250;
+    let batch = writeBatch(db);
+    let count = 0;
+
+    for (const docSnapshot of snapshot.docs) {
+        const data = docSnapshot.data();
+        const newRef = doc(collection(db, SALES_COLLECTION), docSnapshot.id);
+        
+        batch.set(newRef, data);
+        batch.delete(docSnapshot.ref);
+
+        count++;
+        if (count >= BATCH_SIZE) {
+            await batch.commit();
+            batch = writeBatch(db);
+            count = 0;
+        }
+    }
+    
+    if (count > 0) {
+        await batch.commit();
+    }
+  } catch (error) {
+    console.error("Error restoring sales:", error);
+    throw error;
+  }
+};
+
 
 // Helper for reports (Async One-time fetch if needed, but we use subscription usually)
 export const getProductsOnce = (): Promise<Product[]> => {

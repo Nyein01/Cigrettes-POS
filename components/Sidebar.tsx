@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingCart, Package, FileText, Cigarette, ArrowRight } from 'lucide-react';
+import { ShoppingCart, Package, FileText, Cigarette, ArrowRight, Archive } from 'lucide-react';
 
 interface SidebarProps {
   currentView: string;
@@ -11,6 +11,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     { id: 'pos', label: 'Point of Sale', emoji: '🛒', icon: ShoppingCart },
     { id: 'inventory', label: 'Inventory', emoji: '📦', icon: Package },
     { id: 'reports', label: 'Reports', emoji: '📊', icon: FileText },
+    { id: 'archive', label: 'Archive', emoji: '🗄️', icon: Archive },
   ];
 
   return (
@@ -59,7 +60,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
         <p className="text-xs font-bold text-black font-display">
             SYSTEM STATUS: <span className="bg-green-400 px-1 border border-black animate-pulse">ONLINE</span>
         </p>
-        <p className="text-[10px] font-bold mt-1">v2.1 KHAO SAN</p>
+        <p className="text-[10px] font-bold mt-1">v2.2 KHAO SAN</p>
       </div>
     </div>
   );

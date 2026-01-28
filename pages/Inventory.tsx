@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
 import { subscribeToProducts, addProduct, updateProduct, deleteProduct } from '../services/storeService';
-import { Plus, Edit2, Trash2, Search, AlertCircle, X, Box, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, X, Box, AlertTriangle, AlertCircle } from 'lucide-react';
 
 export const Inventory: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -11,8 +11,9 @@ export const Inventory: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
 
+  // Removed brand and costPrice from initial state
   const [formData, setFormData] = useState<Partial<Product>>({
-    name: '', brand: '', stock: 0, basePrice: 0, costPrice: 0
+    name: '', stock: 0, basePrice: 0
   });
 
   useEffect(() => {
@@ -30,7 +31,7 @@ export const Inventory: React.FC = () => {
       setFormData(product);
     } else {
       setEditingProduct(null);
-      setFormData({ name: '', brand: '', stock: 0, basePrice: 0, costPrice: 0 });
+      setFormData({ name: '', stock: 0, basePrice: 0 });
     }
     setIsModalOpen(true);
   };
@@ -43,20 +44,21 @@ export const Inventory: React.FC = () => {
         const updatedProduct: Product = {
             ...editingProduct,
             name: formData.name || 'Unknown',
-            brand: formData.brand || 'Generic',
+            // Keep existing brand/cost if they exist, otherwise default
+            brand: editingProduct.brand || 'General', 
             stock: Number(formData.stock),
             basePrice: Number(formData.basePrice),
-            costPrice: Number(formData.costPrice),
+            costPrice: editingProduct.costPrice || 0,
         };
         await updateProduct(updatedProduct);
       } else {
         // Create (ID handled by Firestore)
         const newProduct = {
           name: formData.name || 'Unknown',
-          brand: formData.brand || 'Generic',
+          brand: 'General', // Default brand since we removed input
           stock: Number(formData.stock),
           basePrice: Number(formData.basePrice),
-          costPrice: Number(formData.costPrice),
+          costPrice: 0, // Default cost since we removed input
         } as Product; // Cast for now, ID added by DB
         await addProduct(newProduct);
       }
@@ -113,33 +115,30 @@ export const Inventory: React.FC = () => {
         
         {/* Responsive Table Container */}
         <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[800px]">
+            <table className="w-full text-left border-collapse min-w-[600px]">
             <thead className="bg-black text-white font-display uppercase tracking-wider text-sm">
                 <tr>
                 <th className="px-6 py-4 border-r-2 border-white">Product Name</th>
-                <th className="px-6 py-4 border-r-2 border-white">Brand</th>
+                {/* Brand and Cost Headers Removed */}
                 <th className="px-6 py-4 border-r-2 border-white">Stock</th>
-                <th className="px-6 py-4 border-r-2 border-white">Cost</th>
                 <th className="px-6 py-4 border-r-2 border-white">Price</th>
                 <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {loading ? (
-                    <tr><td colSpan={6} className="p-8 text-center font-bold animate-pulse">Connecting to Database...</td></tr>
+                    <tr><td colSpan={4} className="p-8 text-center font-bold animate-pulse">Connecting to Database...</td></tr>
                 ) : filteredProducts.map((p, idx) => (
                 <tr key={p.id} className={`hover:bg-[#E0F2FE] transition-colors border-b-2 border-black ${idx === filteredProducts.length - 1 ? 'border-b-0' : ''}`}>
                     <td className="px-6 py-5 font-bold text-lg">{p.name}</td>
-                    <td className="px-6 py-5">
-                        <span className="px-3 py-1 bg-white border-2 border-black font-bold text-xs uppercase shadow-[2px_2px_0px_0px_#000]">{p.brand}</span>
-                    </td>
+                    {/* Brand Cell Removed */}
                     <td className="px-6 py-5">
                     <span className={`inline-flex items-center gap-2 px-3 py-1 border-2 border-black font-bold text-xs shadow-[2px_2px_0px_0px_#000] ${p.stock < 20 ? 'bg-[#FF6B6B] text-white' : 'bg-[#4ECDC4] text-black'}`}>
                         {p.stock < 20 && <AlertCircle size={14} />}
                         {p.stock}
                     </span>
                     </td>
-                    <td className="px-6 py-5 font-mono font-bold text-gray-500">฿{p.costPrice.toFixed(2)}</td>
+                    {/* Cost Cell Removed */}
                     <td className="px-6 py-5 font-mono font-black text-xl">฿{p.basePrice.toFixed(2)}</td>
                     <td className="px-6 py-5 text-right">
                         <div className="flex justify-end gap-2">
@@ -155,7 +154,7 @@ export const Inventory: React.FC = () => {
                 ))}
                 {!loading && filteredProducts.length === 0 && (
                     <tr>
-                        <td colSpan={6} className="p-12 text-center">
+                        <td colSpan={4} className="p-12 text-center">
                             <div className="flex flex-col items-center gap-4 text-gray-400">
                                 <Box size={48} strokeWidth={1} />
                                 <p className="font-bold font-display text-xl">NO ITEMS FOUND</p>
@@ -180,32 +179,19 @@ export const Inventory: React.FC = () => {
             </div>
             
             <form onSubmit={handleSave} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div className="space-y-2">
-                    <label className="font-bold text-xs uppercase tracking-wide bg-[#FFDE00] inline-block px-1 border border-black">Brand</label>
-                    <input
-                      required
-                      type="text"
-                      className="neo-input w-full p-3 font-bold text-lg"
-                      placeholder="e.g. Marlboro"
-                      value={formData.brand}
-                      onChange={e => setFormData({ ...formData, brand: e.target.value })}
-                    />
-                 </div>
-                 <div className="space-y-2">
-                    <label className="font-bold text-xs uppercase tracking-wide bg-[#FFDE00] inline-block px-1 border border-black">Product Name</label>
-                    <input
-                      required
-                      type="text"
-                      className="neo-input w-full p-3 font-bold text-lg"
-                      placeholder="e.g. Red Label"
-                      value={formData.name}
-                      onChange={e => setFormData({ ...formData, name: e.target.value })}
-                    />
-                 </div>
+              <div className="space-y-2">
+                <label className="font-bold text-xs uppercase tracking-wide bg-[#FFDE00] inline-block px-1 border border-black">Product Name</label>
+                <input
+                    required
+                    type="text"
+                    className="neo-input w-full p-3 font-bold text-lg"
+                    placeholder="e.g. Marlboro Red Label"
+                    value={formData.name}
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                />
               </div>
               
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="font-bold text-xs uppercase tracking-wide">Stock</label>
                   <input
@@ -217,18 +203,7 @@ export const Inventory: React.FC = () => {
                     onChange={e => setFormData({ ...formData, stock: Number(e.target.value) })}
                   />
                 </div>
-                 <div className="space-y-2">
-                  <label className="font-bold text-xs uppercase tracking-wide">Cost (฿)</label>
-                  <input
-                    required
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className="neo-input w-full p-3 font-mono font-bold"
-                    value={formData.costPrice}
-                    onChange={e => setFormData({ ...formData, costPrice: Number(e.target.value) })}
-                  />
-                </div>
+                {/* Cost Input Removed */}
                  <div className="space-y-2">
                   <label className="font-bold text-xs uppercase tracking-wide">Price (฿)</label>
                   <input
