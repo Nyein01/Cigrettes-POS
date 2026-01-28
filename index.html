@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Khao San Cigarettes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+      
+      :root {
+        --neo-shadow: 4px 4px 0px 0px #000000;
+        --neo-shadow-hover: 6px 6px 0px 0px #000000;
+        --neo-shadow-active: 0px 0px 0px 0px #000000;
+      }
+
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #FDFBF7; /* Warm Cream */
+        background-image: radial-gradient(#d4d4d4 1px, transparent 1px);
+        background-size: 24px 24px;
+        color: #000000;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      h1, h2, h3, h4, h5, h6, button, .font-display {
+        font-family: 'Space Grotesk', sans-serif;
+      }
+
+      /* Neo-Brutalist Utilities */
+      .neo-border {
+        border: 2px solid #000000;
+      }
+      
+      .neo-box {
+        background: white;
+        border: 2px solid #000000;
+        box-shadow: var(--neo-shadow);
+        transition: all 0.2s ease-in-out;
+      }
+
+      .neo-box:hover {
+        transform: translate(-2px, -2px);
+        box-shadow: var(--neo-shadow-hover);
+      }
+
+      .neo-btn {
+        border: 2px solid #000000;
+        box-shadow: var(--neo-shadow);
+        transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .neo-btn:hover {
+        transform: translate(-1px, -1px);
+        box-shadow: 5px 5px 0px 0px #000000;
+      }
+
+      .neo-btn:active {
+        transform: translate(2px, 2px);
+        box-shadow: var(--neo-shadow-active);
+      }
+
+      .neo-input {
+        border: 2px solid #000000;
+        background: #ffffff;
+        box-shadow: 2px 2px 0px 0px #e5e7eb;
+        transition: all 0.2s;
+        font-family: 'Space Grotesk', sans-serif;
+      }
+      .neo-input:focus {
+        box-shadow: var(--neo-shadow);
+        outline: none;
+        transform: translate(-1px, -1px);
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1; 
+        border-left: 2px solid #000;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #FF5D01; 
+        border: 2px solid #000;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #FF8000; 
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "jspdf": "https://esm.sh/jspdf@^4.0.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.38.0",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "recharts": "https://esm.sh/recharts@^3.7.0",
+    "jspdf-autotable": "https://esm.sh/jspdf-autotable@^5.0.7",
+    "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js",
+    "firebase/analytics": "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js",
+    "firebase/": "https://esm.sh/firebase@^12.8.0/"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
