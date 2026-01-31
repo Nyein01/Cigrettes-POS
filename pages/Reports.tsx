@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sale } from '../types';
-import { subscribeToSales, getProductsOnce, clearSalesHistory, archiveCurrentSales } from '../services/storeService';
-import { Download, DollarSign, Package, ArrowUpRight, Save, Trash2, Archive } from 'lucide-react';
+import { subscribeToSales, getProductsOnce, clearSalesHistory, archiveCurrentSales, deleteSale } from '../services/storeService';
+import { Download, DollarSign, Package, Archive, Trash2, Calendar, AlertTriangle } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -10,6 +10,7 @@ export const Reports: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [saleToDelete, setSaleToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = subscribeToSales((data) => {
@@ -20,24 +21,20 @@ export const Reports: React.FC = () => {
   }, []);
 
   const totalRevenue = sales.reduce((sum, s) => sum + s.total, 0);
-  // Total profit calculation kept for PDF generation
-  const totalProfit = sales.reduce((sum, s) => sum + s.profit, 0);
   const totalItems = sales.reduce((sum, s) => sum + s.items.reduce((q, i) => q + i.quantity, 0), 0);
+  // Keep profit for PDF
+  const totalProfit = sales.reduce((sum, s) => sum + s.profit, 0);
 
   const downloadPDF = async () => {
     const doc = new jsPDF();
     const products = await getProductsOnce();
 
-    doc.setFontSize(22);
+    doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
-    doc.text("Khao San Cigarettes - Status Report", 14, 20);
+    doc.text("Khao San Cigarettes - Report", 14, 20);
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
-
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("1. Current Stock Inventory", 14, 40);
 
     const inventoryData = products.map(p => [
         p.name,
@@ -48,229 +45,221 @@ export const Reports: React.FC = () => {
     autoTable(doc, {
         head: [['Name', 'Stock', 'Price']], 
         body: inventoryData,
-        startY: 45,
+        startY: 35,
         theme: 'grid',
-        headStyles: { fillColor: [0, 0, 0] }, 
-        styles: { font: 'helvetica', fontSize: 10 }
+        headStyles: { fillColor: [66, 66, 66] }
     });
 
     const lastY = (doc as any).lastAutoTable.finalY || 50;
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "bold");
-    doc.text("2. Recent Sales History", 14, lastY + 15);
-
+    
     const salesData = sales.map(s => [
         new Date(s.date).toLocaleDateString(),
         s.items.map(i => `${i.name} (${i.quantity})`).join(', '),
-        `B${s.total.toFixed(2)}`,
-        `B${s.profit.toFixed(2)}`
+        `B${s.total.toFixed(2)}`
     ]);
 
     autoTable(doc, {
-        head: [['Date', 'Items', 'Total', 'Profit']],
+        head: [['Date', 'Items', 'Total']],
         body: salesData,
-        startY: lastY + 20,
+        startY: lastY + 15,
         theme: 'grid',
-        headStyles: { fillColor: [0, 0, 0] },
-        styles: { font: 'helvetica', fontSize: 10 }
+        headStyles: { fillColor: [66, 66, 66] }
     });
 
     const finalY = (doc as any).lastAutoTable.finalY || 100;
-    doc.setFontSize(12);
-    doc.text(`Total Revenue: B${totalRevenue.toFixed(2)}`, 14, finalY + 15);
-    doc.text(`Total Profit: B${totalProfit.toFixed(2)}`, 100, finalY + 15);
+    doc.text(`Total Revenue: B${totalRevenue.toFixed(2)}`, 14, finalY + 10);
+    doc.text(`Total Profit: B${totalProfit.toFixed(2)}`, 14, finalY + 16);
 
-    doc.save("khaosan_full_report.pdf");
+    doc.save("khaosan_report.pdf");
   };
 
-  const downloadBackup = () => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(sales, null, 2));
-    const downloadAnchorNode = document.createElement('a');
-    downloadAnchorNode.setAttribute("href", dataStr);
-    downloadAnchorNode.setAttribute("download", `sales_backup_${new Date().toISOString().split('T')[0]}.json`);
-    document.body.appendChild(downloadAnchorNode);
-    downloadAnchorNode.click();
-    downloadAnchorNode.remove();
+  const handleDeleteSale = async () => {
+    if (saleToDelete) {
+        await deleteSale(saleToDelete);
+        setSaleToDelete(null);
+    }
   };
 
   const handleClearHistory = async () => {
-    try {
-        await clearSalesHistory();
-        setShowClearConfirm(false);
-    } catch (e) {
-        alert("Failed to clear history. Check console.");
-    }
+    await clearSalesHistory();
+    setShowClearConfirm(false);
   };
 
   const handleArchive = async () => {
-    try {
-        await archiveCurrentSales();
-        setShowArchiveConfirm(false);
-    } catch(e) {
-        alert("Failed to archive sales. Check console.");
-    }
+    await archiveCurrentSales();
+    setShowArchiveConfirm(false);
   }
 
   return (
-    <div className="p-4 md:p-8 h-full overflow-y-auto bg-[#fffdf5]">
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-10 gap-4">
+    <div className="p-4 md:p-8 h-full overflow-y-auto bg-slate-50 lg:rounded-2xl animate-fade-in">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 lg:mb-8 gap-4 lg:gap-6">
         <div>
-           <div className="bg-[#4ECDC4] border-2 border-black px-4 py-1 inline-block font-bold transform -rotate-1 mb-2 shadow-[3px_3px_0px_0px_#000]">
-                DAILY METRICS
-           </div>
-           <h2 className="text-3xl md:text-4xl font-black text-black font-display uppercase tracking-tight">Analytics Dashboard 📊</h2>
+           <h2 className="text-2xl lg:text-3xl font-bold text-slate-800 tracking-tight">Analytics</h2>
+           <p className="text-slate-500 font-medium mt-1 text-sm lg:text-base">Overview of your store performance</p>
         </div>
         
-        <div className="flex flex-wrap gap-3 w-full lg:w-auto">
+        <div className="flex flex-wrap gap-2 lg:gap-3 w-full lg:w-auto">
             <button 
                 onClick={() => setShowArchiveConfirm(true)}
-                className="neo-btn bg-[#FFDE00] text-black px-4 py-3 flex items-center gap-2 hover:bg-[#ffe54f] flex-1 lg:flex-none justify-center"
+                className="btn-hover-effect bg-white border border-slate-200 text-slate-700 px-4 py-2 lg:px-5 lg:py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm text-sm lg:text-base flex-1 lg:flex-none justify-center"
             >
-                <Archive size={18} strokeWidth={2.5} />
-                ARCHIVE DATA
+                <Archive size={18} /> Archive
             </button>
             <button 
                 onClick={downloadPDF}
-                className="neo-btn bg-black text-white px-4 py-3 flex items-center gap-2 hover:bg-gray-800 flex-1 lg:flex-none justify-center"
+                className="btn-hover-effect bg-white border border-slate-200 text-slate-700 px-4 py-2 lg:px-5 lg:py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm text-sm lg:text-base flex-1 lg:flex-none justify-center"
             >
-                <Download size={18} />
-                PDF REPORT
+                <Download size={18} /> PDF
             </button>
             <button 
                 onClick={() => setShowClearConfirm(true)}
-                className="neo-btn bg-[#FF6B6B] text-white px-4 py-3 flex items-center gap-2 hover:bg-red-500 flex-1 lg:flex-none justify-center"
+                className="btn-hover-effect bg-white border border-slate-200 text-rose-600 px-4 py-2 lg:px-5 lg:py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-rose-50 hover:border-rose-100 transition-colors shadow-sm text-sm lg:text-base flex-1 lg:flex-none justify-center"
             >
-                <Trash2 size={18} />
-                CLEAR
+                <Trash2 size={18} /> Clear
             </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-        {[
-            { label: 'REVENUE', value: `฿${totalRevenue.toFixed(2)}`, icon: DollarSign, color: 'bg-[#FFDE00]', text: 'text-black' },
-            { label: 'UNITS SOLD', value: totalItems, icon: Package, color: 'bg-[#4ECDC4]', text: 'text-black' },
-        ].map((stat, idx) => (
-            <div key={idx} className={`neo-box p-6 ${stat.color} ${stat.text} relative overflow-hidden group`}>
-                <div className="absolute top-2 right-2 opacity-20 transform group-hover:scale-125 transition-transform duration-300">
-                    <stat.icon size={64} />
-                </div>
-                <p className="font-bold text-xs uppercase tracking-widest mb-2 border-b-2 border-current inline-block pb-1">{stat.label}</p>
-                <p className="text-3xl font-black font-mono tracking-tighter">{stat.value}</p>
-                <ArrowUpRight className="absolute bottom-4 right-4" size={24} strokeWidth={3} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
+        <div className="card-hover-effect bg-white p-5 lg:p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between group">
+            <div>
+                <p className="text-xs lg:text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Total Revenue</p>
+                <p className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tighter group-hover:text-indigo-600 transition-colors">฿{totalRevenue.toFixed(2)}</p>
             </div>
-        ))}
+            <div className="bg-emerald-100 p-3 lg:p-4 rounded-2xl text-emerald-600 group-hover:scale-110 transition-transform">
+                <DollarSign size={24} className="lg:w-7 lg:h-7" strokeWidth={2.5} />
+            </div>
+        </div>
+        <div className="card-hover-effect bg-white p-5 lg:p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between group">
+            <div>
+                <p className="text-xs lg:text-sm font-bold text-slate-400 uppercase tracking-wider mb-2">Units Sold</p>
+                <p className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tighter group-hover:text-indigo-600 transition-colors">{totalItems}</p>
+            </div>
+            <div className="bg-blue-100 p-3 lg:p-4 rounded-2xl text-blue-600 group-hover:scale-110 transition-transform">
+                <Package size={24} className="lg:w-7 lg:h-7" strokeWidth={2.5} />
+            </div>
+        </div>
       </div>
 
-      {/* Sales List Container - Expanded to full width */}
-      <div className="neo-box bg-white flex flex-col h-auto min-h-[500px]">
-            <div className="p-4 border-b-2 border-black bg-[#FFDE00] flex justify-between items-center">
-                <h3 className="font-black text-black font-display uppercase">Recent Sales</h3>
-                <div className="w-3 h-3 bg-red-500 rounded-full border border-black animate-pulse"></div>
+      {/* Sales List */}
+      <div className="bg-white rounded-xl lg:rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-auto min-h-[400px] lg:min-h-[500px] animate-fade-in-delay-1">
+            <div className="p-4 lg:p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <h3 className="font-bold text-slate-800 text-base lg:text-lg">Recent Sales</h3>
+                <span className="text-[10px] lg:text-xs font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 lg:px-3 lg:py-1 rounded-full border border-indigo-100">{sales.length} Records</span>
             </div>
-            <div className="flex-1 overflow-y-auto p-0">
+            <div className="flex-1 overflow-y-auto">
                 <table className="w-full text-left text-sm">
-                    <thead className="bg-black text-white font-bold text-xs uppercase sticky top-0 z-10">
+                    <thead className="bg-slate-50 text-slate-500 font-semibold text-xs uppercase sticky top-0 z-10 border-b border-slate-100">
                         <tr>
-                            <th className="p-3 w-1/4">Time</th>
-                            <th className="p-3 w-1/2">Items Sold</th>
-                            <th className="p-3 w-1/4 text-right">Total</th>
+                            <th className="px-4 py-3 lg:px-6 lg:py-4">Time</th>
+                            <th className="px-4 py-3 lg:px-6 lg:py-4 w-1/2">Items</th>
+                            <th className="px-4 py-3 lg:px-6 lg:py-4 text-right">Total</th>
+                            <th className="px-4 py-3 lg:px-6 lg:py-4 text-right">Action</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y-2 divide-gray-100">
-                        {loading ? <tr><td colSpan={3} className="p-4 text-center font-bold">Loading...</td></tr> : sales.slice().reverse().map((sale, i) => (
-                            <tr key={sale.id} className="hover:bg-gray-50 group border-b border-gray-100 last:border-0">
-                                <td className="p-3 align-top">
-                                    <div className="font-bold text-base">{new Date(sale.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
-                                    <div className="text-xs text-gray-500 font-bold uppercase">{new Date(sale.date).toLocaleDateString()}</div>
+                    <tbody className="divide-y divide-slate-100">
+                        {loading ? <tr><td colSpan={4} className="p-8 text-center text-slate-400 font-medium animate-pulse">Loading sales data...</td></tr> : sales.slice().reverse().map((sale, i) => (
+                            <tr key={sale.id} className="hover:bg-indigo-50/30 transition-colors group animate-fade-in" style={{ animationDelay: `${i * 0.02}s` }}>
+                                <td className="px-4 py-3 lg:px-6 lg:py-4 align-top">
+                                    <div className="font-bold text-slate-800 text-xs lg:text-sm">{new Date(sale.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                                    <div className="text-[10px] lg:text-xs text-slate-400 font-medium mt-0.5">{new Date(sale.date).toLocaleDateString()}</div>
                                 </td>
-                                <td className="p-3 align-top">
-                                    <div className="flex flex-col gap-1">
+                                <td className="px-4 py-3 lg:px-6 lg:py-4 align-top">
+                                    <div className="flex flex-col gap-1.5">
                                         {sale.items.map((item, idx) => (
-                                            <div key={idx} className="flex justify-between items-center text-sm font-bold text-gray-800 border-b border-dashed border-gray-200 pb-1 last:border-0 last:pb-0">
-                                                <span>{item.name}</span>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-gray-400 text-xs">x{item.quantity}</span>
-                                                    {/* Optional: Show individual price if needed */}
-                                                </div>
+                                            <div key={idx} className="flex items-center gap-2 text-slate-700">
+                                                <span className="font-medium text-xs lg:text-sm line-clamp-1">{item.name}</span>
+                                                <span className="text-[10px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">x{item.quantity}</span>
                                             </div>
                                         ))}
                                     </div>
                                 </td>
-                                <td className="p-3 text-right align-top">
-                                    <div className="font-black bg-black text-white inline-block px-3 py-1 text-sm shadow-[2px_2px_0px_0px_#ccc]">
+                                <td className="px-4 py-3 lg:px-6 lg:py-4 text-right align-top">
+                                    <div className="font-bold text-slate-900 bg-slate-100 inline-block px-2 py-0.5 lg:px-2.5 lg:py-1 rounded-lg border border-slate-200 text-xs lg:text-sm">
                                         ฿{sale.total.toFixed(2)}
                                     </div>
+                                </td>
+                                <td className="px-4 py-3 lg:px-6 lg:py-4 text-right align-top">
+                                    <button 
+                                        onClick={() => setSaleToDelete(sale.id)}
+                                        className="text-slate-400 hover:text-rose-600 transition-all p-1.5 lg:p-2 rounded-lg hover:bg-rose-50 lg:hover:scale-110"
+                                        title="Delete Sale"
+                                    >
+                                        <Trash2 size={16} className="lg:w-[18px] lg:h-[18px]" />
+                                    </button>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
                 {!loading && sales.length === 0 && (
-                    <div className="p-12 text-center text-gray-400 font-bold flex flex-col items-center gap-2">
-                        <Package size={48} strokeWidth={1} />
-                        <span>NO SALES RECORDED YET</span>
+                    <div className="p-16 text-center text-slate-400 flex flex-col items-center gap-4">
+                        <div className="bg-slate-100 p-5 rounded-full shadow-inner">
+                            <Package size={40} className="text-slate-300" />
+                        </div>
+                        <span className="font-medium text-lg">No sales recorded yet</span>
                     </div>
                 )}
             </div>
       </div>
 
-      {/* Clear History Confirmation Modal */}
-      {showClearConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#FFFDF5] border-4 border-black p-8 w-full max-w-md shadow-[8px_8px_0px_0px_#000] relative">
-            <div className="flex flex-col items-center text-center gap-4">
-                <div className="bg-[#FF6B6B] p-4 rounded-full border-2 border-black shadow-[4px_4px_0px_0px_#000]">
-                    <Trash2 size={32} className="text-white" strokeWidth={3} />
+      {/* Delete Single Sale Confirmation */}
+      {saleToDelete && (
+         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+            <div className="bg-white rounded-3xl p-6 lg:p-8 w-full max-w-sm shadow-2xl scale-100">
+                <div className="flex flex-col items-center text-center gap-4">
+                    <div className="bg-rose-100 p-4 rounded-full text-rose-600 shadow-inner">
+                        <Trash2 size={32} />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-900">Delete Transaction?</h3>
+                    <p className="text-sm text-slate-500 font-medium">
+                        This will remove the sale record and <strong>restore the inventory stock</strong>.
+                    </p>
+                    <div className="flex gap-3 w-full mt-4">
+                        <button onClick={() => setSaleToDelete(null)} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-colors">Cancel</button>
+                        <button onClick={handleDeleteSale} className="flex-1 py-3 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 transition-all shadow-lg shadow-rose-200">Delete</button>
+                    </div>
                 </div>
-                <h3 className="text-2xl font-black font-display uppercase mt-2">Delete Permanently?</h3>
-                <p className="font-bold text-gray-600">
-                    This will delete ALL sales records. <br/>Use "Archive Data" instead if you want to save them for later.
+            </div>
+         </div>
+      )}
+
+      {/* Clear All Confirmation */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 lg:p-8 w-full max-w-sm shadow-2xl">
+            <div className="flex flex-col items-center text-center gap-4">
+                <div className="bg-rose-100 p-4 rounded-full text-rose-600 shadow-inner">
+                    <AlertTriangle size={32} />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900">Clear All History?</h3>
+                <p className="text-sm text-slate-500 font-medium">
+                    This will permanently delete all sales records. Use "Archive" if you want to save them.
                 </p>
-                <div className="flex gap-4 w-full mt-6">
-                    <button
-                        onClick={() => setShowClearConfirm(false)}
-                        className="flex-1 py-3 font-bold border-2 border-black uppercase hover:bg-gray-100 transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleClearHistory}
-                        className="flex-1 neo-btn bg-[#FF6B6B] text-white py-3"
-                    >
-                        Delete All
-                    </button>
+                <div className="flex gap-3 w-full mt-4">
+                    <button onClick={() => setShowClearConfirm(false)} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-colors">Cancel</button>
+                    <button onClick={handleClearHistory} className="flex-1 py-3 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 transition-all shadow-lg shadow-rose-200">Delete All</button>
                 </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Archive Confirmation Modal */}
+      {/* Archive Confirmation */}
       {showArchiveConfirm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#FFFDF5] border-4 border-black p-8 w-full max-w-md shadow-[8px_8px_0px_0px_#000] relative">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 lg:p-8 w-full max-w-sm shadow-2xl">
             <div className="flex flex-col items-center text-center gap-4">
-                <div className="bg-[#FFDE00] p-4 rounded-full border-2 border-black shadow-[4px_4px_0px_0px_#000]">
-                    <Archive size={32} className="text-black" strokeWidth={3} />
+                <div className="bg-amber-100 p-4 rounded-full text-amber-600 shadow-inner">
+                    <Archive size={32} />
                 </div>
-                <h3 className="text-2xl font-black font-display uppercase mt-2">Archive Data?</h3>
-                <p className="font-bold text-gray-600">
-                    This will move all current sales to the Archive. The main dashboard will be cleared for new sales. You can restore data later from the Archive tab.
+                <h3 className="text-xl font-bold text-slate-900">Archive Data?</h3>
+                <p className="text-sm text-slate-500 font-medium">
+                    Moves current sales to the Archive tab. The dashboard will be cleared for a new day.
                 </p>
-                <div className="flex gap-4 w-full mt-6">
-                    <button
-                        onClick={() => setShowArchiveConfirm(false)}
-                        className="flex-1 py-3 font-bold border-2 border-black uppercase hover:bg-gray-100 transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={handleArchive}
-                        className="flex-1 neo-btn bg-[#FFDE00] text-black py-3"
-                    >
-                        Yes, Archive
-                    </button>
+                <div className="flex gap-3 w-full mt-4">
+                    <button onClick={() => setShowArchiveConfirm(false)} className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-colors">Cancel</button>
+                    <button onClick={handleArchive} className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition-all shadow-lg shadow-amber-200">Archive</button>
                 </div>
             </div>
           </div>

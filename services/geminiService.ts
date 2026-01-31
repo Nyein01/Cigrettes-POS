@@ -2,14 +2,9 @@ import { GoogleGenAI } from "@google/genai";
 import { Sale } from '../types';
 
 export const generateSalesAnalysis = async (sales: Sale[]): Promise<string> => {
-  // Use Vite's standard environment variable access
-  const apiKey = import.meta.env.VITE_API_KEY;
-  
-  if (!apiKey) {
-    return "API Key is missing. Please set VITE_API_KEY in your environment variables.";
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
+  // Use process.env.API_KEY as mandated by guidelines. 
+  // Assume it is pre-configured and valid.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   // Prepare a lightweight summary of sales to save tokens
   const salesSummary = sales.map(s => ({
