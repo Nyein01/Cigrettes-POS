@@ -5,6 +5,7 @@ import { subscribeToSales, getProductsOnce, clearSalesHistory, archiveCurrentSal
 import { Download, DollarSign, Package, Archive, Trash2, Calendar, AlertTriangle } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { interact } from '../services/interactionService';
 
 export const Reports: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -27,6 +28,7 @@ export const Reports: React.FC = () => {
   const totalProfit = sales.reduce((sum, s) => sum + s.profit, 0);
 
   const downloadPDF = async () => {
+    interact();
     const doc = new jsPDF();
     const products = await getProductsOnce();
 
@@ -75,6 +77,7 @@ export const Reports: React.FC = () => {
   };
 
   const handleDeleteSale = async () => {
+    interact();
     if (saleToDelete) {
         await deleteSale(saleToDelete);
         setSaleToDelete(null);
@@ -82,11 +85,13 @@ export const Reports: React.FC = () => {
   };
 
   const handleClearHistory = async () => {
+    interact();
     await clearSalesHistory();
     setShowClearConfirm(false);
   };
 
   const handleArchive = async () => {
+    interact();
     await archiveCurrentSales();
     setShowArchiveConfirm(false);
   }
@@ -101,7 +106,7 @@ export const Reports: React.FC = () => {
         
         <div className="flex flex-wrap gap-2 lg:gap-3 w-full lg:w-auto">
             <button 
-                onClick={() => setShowArchiveConfirm(true)}
+                onClick={() => { interact(); setShowArchiveConfirm(true); }}
                 className="glass-card bg-white/40 border border-white/50 text-slate-700 px-4 py-2 lg:px-5 lg:py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-white/60 transition-colors shadow-sm text-sm lg:text-base flex-1 lg:flex-none justify-center"
             >
                 <Archive size={18} /> Daily Backup
@@ -113,7 +118,7 @@ export const Reports: React.FC = () => {
                 <Download size={18} /> PDF
             </button>
             <button 
-                onClick={() => setShowClearConfirm(true)}
+                onClick={() => { interact(); setShowClearConfirm(true); }}
                 className="glass-card bg-white/40 border border-white/50 text-rose-600 px-4 py-2 lg:px-5 lg:py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-rose-50 hover:border-rose-200 transition-colors shadow-sm text-sm lg:text-base flex-1 lg:flex-none justify-center"
             >
                 <Trash2 size={18} /> Clear
@@ -182,7 +187,7 @@ export const Reports: React.FC = () => {
                                 </td>
                                 <td className="px-4 py-3 lg:px-6 lg:py-4 text-right align-top">
                                     <button 
-                                        onClick={() => setSaleToDelete(sale.id)}
+                                        onClick={() => { interact(); setSaleToDelete(sale.id); }}
                                         className="text-slate-400 hover:text-rose-600 transition-all p-1.5 lg:p-2 rounded-lg hover:bg-rose-100/50 lg:hover:scale-110"
                                         title="Delete Sale"
                                     >
@@ -217,7 +222,7 @@ export const Reports: React.FC = () => {
                         This will remove the sale record and <strong>restore the inventory stock</strong>.
                     </p>
                     <div className="flex gap-3 w-full mt-4">
-                        <button onClick={() => setSaleToDelete(null)} className="flex-1 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-white transition-colors">Cancel</button>
+                        <button onClick={() => { interact(); setSaleToDelete(null); }} className="flex-1 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-white transition-colors">Cancel</button>
                         <button onClick={handleDeleteSale} className="flex-1 py-3 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 transition-all shadow-lg shadow-rose-500/30">Delete</button>
                     </div>
                 </div>
@@ -239,7 +244,7 @@ export const Reports: React.FC = () => {
                     This will permanently delete all sales records. Use "Daily Backup" if you want to save them.
                 </p>
                 <div className="flex gap-3 w-full mt-4">
-                    <button onClick={() => setShowClearConfirm(false)} className="flex-1 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-white transition-colors">Cancel</button>
+                    <button onClick={() => { interact(); setShowClearConfirm(false); }} className="flex-1 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-white transition-colors">Cancel</button>
                     <button onClick={handleClearHistory} className="flex-1 py-3 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 transition-all shadow-lg shadow-rose-500/30">Delete All</button>
                 </div>
             </div>
@@ -261,7 +266,7 @@ export const Reports: React.FC = () => {
                     Moves current sales to the Archive tab grouped by today's date.<br/>The main dashboard will be cleared for a new day.
                 </p>
                 <div className="flex gap-3 w-full mt-4">
-                    <button onClick={() => setShowArchiveConfirm(false)} className="flex-1 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-white transition-colors">Cancel</button>
+                    <button onClick={() => { interact(); setShowArchiveConfirm(false); }} className="flex-1 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-white transition-colors">Cancel</button>
                     <button onClick={handleArchive} className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/30">Backup</button>
                 </div>
             </div>

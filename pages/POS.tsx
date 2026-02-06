@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Product, CartItem, Sale } from '../types';
 import { subscribeToProducts, saveSale } from '../services/storeService';
-import { ShoppingCart, Trash2, Plus, Minus, CheckCircle, Search, Sparkles } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, CheckCircle, Search, Sparkles, Keyboard } from 'lucide-react';
+import { interact } from '../services/interactionService';
 
 export const POS: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -9,6 +10,7 @@ export const POS: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [checkoutComplete, setCheckoutComplete] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const unsubscribe = subscribeToProducts((data) => {
@@ -24,6 +26,7 @@ export const POS: React.FC = () => {
   );
 
   const addToCart = (product: Product) => {
+    interact();
     const existing = cart.find(item => item.id === product.id);
     if (existing) {
       if (existing.quantity < product.stock) {
@@ -35,14 +38,17 @@ export const POS: React.FC = () => {
   };
 
   const removeFromCart = (id: string) => {
+    interact();
     setCart(cart.filter(item => item.id !== id));
   };
 
   const clearCart = () => {
+    interact();
     setCart([]);
   };
 
   const updateQuantity = (id: string, delta: number) => {
+    interact();
     setCart(cart.map(item => {
       if (item.id === id) {
         const newQty = item.quantity + delta;
@@ -54,6 +60,7 @@ export const POS: React.FC = () => {
   };
 
   const updatePrice = (id: string, newPrice: number) => {
+    // No interact() on typing to avoid spamming sound
     setCart(cart.map(item => item.id === id ? { ...item, negotiatedPrice: newPrice } : item));
   };
 
@@ -63,6 +70,7 @@ export const POS: React.FC = () => {
 
   const handleCheckout = async () => {
     if (cart.length === 0 || isProcessing) return;
+    interact();
     setIsProcessing(true);
 
     try {
@@ -89,6 +97,38 @@ export const POS: React.FC = () => {
     }
   };
 
+  // Keyboard Shortcuts Handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isProcessing || checkoutComplete) return;
+
+      // Checkout: Ctrl + Enter
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleCheckout();
+        return;
+      }
+
+      // Clear Cart: Ctrl + Delete or Ctrl + Backspace
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'Delete' || e.key === 'Backspace')) {
+        e.preventDefault();
+        clearCart();
+        return;
+      }
+
+      // Focus Search: / (only if not already typing in an input)
+      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        interact();
+        searchInputRef.current?.focus();
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cart, isProcessing, checkoutComplete]);
+
   return (
     <div className="flex flex-col lg:flex-row h-full overflow-hidden animate-fade-in gap-4 lg:gap-0">
       
@@ -100,7 +140,16 @@ export const POS: React.FC = () => {
             <div className="flex justify-between w-full sm:w-auto items-center">
                 <div>
                     <h2 className="text-xl lg:text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-                        Store Front <Sparkles size={18} className="text-amber-500" />
+                        Store Front 
+                        <div className="group relative flex items-center justify-center ml-1">
+                            <Keyboard size={18} className="text-slate-400 hover:text-indigo-600 transition-colors cursor-help" />
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-40 bg-slate-800 text-white text-xs rounded-lg p-3 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none">
+                                <div className="font-bold mb-2 border-b border-slate-600 pb-1 text-center">Shortcuts</div>
+                                <div className="flex justify-between mb-1"><span>Search</span> <span className="font-mono bg-slate-700 px-1 rounded text-[10px] min-w-[20px] text-center">/</span></div>
+                                <div className="flex justify-between mb-1"><span>Charge</span> <span className="font-mono bg-slate-700 px-1 rounded text-[10px]">Ctrl+Ent</span></div>
+                                <div className="flex justify-between"><span>Clear</span> <span className="font-mono bg-slate-700 px-1 rounded text-[10px]">Ctrl+Del</span></div>
+                            </div>
+                        </div>
                     </h2>
                     <p className="text-xs lg:text-sm text-slate-600 font-medium">Select items to add to cart</p>
                 </div>
@@ -108,8 +157,9 @@ export const POS: React.FC = () => {
             
             <div className="relative w-full sm:w-72 group">
                 <input 
+                    ref={searchInputRef}
                     type="text" 
-                    placeholder="Search products..." 
+                    placeholder="Search products... (/)" 
                     className="w-full bg-white/40 backdrop-blur-md border border-white/50 rounded-xl py-2.5 pl-10 pr-4 text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all shadow-sm group-hover:bg-white/60 placeholder-slate-500"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -166,6 +216,7 @@ export const POS: React.FC = () => {
             {cart.length > 0 && (
                 <button 
                     onClick={clearCart} 
+                    title="Clear Cart (Ctrl + Delete)"
                     className="text-[10px] lg:text-xs font-bold text-rose-600 hover:text-white bg-rose-100/80 hover:bg-rose-500 px-2 lg:px-3 py-1 lg:py-1.5 rounded-full transition-colors flex items-center gap-1 shadow-sm"
                 >
                     <Trash2 size={12} strokeWidth={2.5} /> CLEAR
@@ -181,6 +232,9 @@ export const POS: React.FC = () => {
                     <ShoppingCart size={32} className="text-slate-400" />
                 </div>
                 <p className="text-xs lg:text-sm font-semibold">Cart is empty</p>
+                <div className="text-[10px] text-slate-400 text-center">
+                    Select items from the list<br/>or use search (Press /)
+                </div>
              </div>
           ) : (
             cart.map(item => (
@@ -236,6 +290,7 @@ export const POS: React.FC = () => {
            <button 
              onClick={handleCheckout}
              disabled={cart.length === 0 || isProcessing}
+             title="Charge & Print (Ctrl + Enter)"
              className={`w-full py-3 lg:py-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all duration-300 shadow-lg border border-white/20 flex items-center justify-center gap-2 transform active:scale-[0.98] ${
                checkoutComplete 
                 ? 'bg-emerald-500 text-white shadow-emerald-500/40' 

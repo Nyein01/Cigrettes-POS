@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Sun, Moon, Cloud, Droplets, Palette, Check, Image as ImageIcon, Upload } from 'lucide-react';
+import { interact } from '../services/interactionService';
 
 interface SettingsProps {
   currentTheme: string;
@@ -97,6 +98,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentTheme, onThemeChange,
                 // Try setting it
                 onCustomBgChange(compressedDataUrl);
                 onThemeChange('custom');
+                interact();
             } catch (error) {
                 console.error(error);
                 alert("Image is still too large. Please try a smaller image.");
@@ -119,6 +121,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentTheme, onThemeChange,
   };
 
   const triggerUpload = () => {
+    interact();
     fileInputRef.current?.click();
   };
 
@@ -141,7 +144,7 @@ export const Settings: React.FC<SettingsProps> = ({ currentTheme, onThemeChange,
                     return (
                         <button
                             key={theme.id}
-                            onClick={() => onThemeChange(theme.id)}
+                            onClick={() => { interact(); onThemeChange(theme.id); }}
                             className={`relative group rounded-xl p-4 border-2 transition-all duration-300 text-left hover:scale-[1.02] flex items-start gap-4 ${
                                 isSelected 
                                 ? 'border-indigo-500 bg-white/60 shadow-lg' 

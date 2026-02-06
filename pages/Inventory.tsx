@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Product } from '../types';
 import { subscribeToProducts, addProduct, updateProduct, deleteProduct } from '../services/storeService';
 import { Plus, Edit2, Trash2, Search, X, Box, AlertCircle, Save, AlertTriangle, Filter } from 'lucide-react';
+import { interact } from '../services/interactionService';
 
 export const Inventory: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -26,6 +27,7 @@ export const Inventory: React.FC = () => {
   }, []);
 
   const handleOpenModal = (product?: Product) => {
+    interact();
     if (product) {
       setEditingProduct(product);
       setFormData(product);
@@ -38,6 +40,7 @@ export const Inventory: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    interact();
     try {
       if (editingProduct) {
         const updatedProduct: Product = {
@@ -66,10 +69,12 @@ export const Inventory: React.FC = () => {
   };
 
   const promptDelete = (id: string) => {
+    interact();
     setDeleteId(id);
   };
 
   const confirmDelete = async () => {
+    interact();
     if (deleteId) {
       await deleteProduct(deleteId);
       setDeleteId(null);
@@ -117,7 +122,7 @@ export const Inventory: React.FC = () => {
             </div>
             {!showLowStockOnly && (
                 <button 
-                    onClick={() => setShowLowStockOnly(true)}
+                    onClick={() => { interact(); setShowLowStockOnly(true); }}
                     className="text-xs lg:text-sm font-bold bg-white/60 hover:bg-white text-rose-700 px-3 py-1.5 rounded-lg transition-all shadow-sm"
                 >
                     View Items
@@ -140,7 +145,7 @@ export const Inventory: React.FC = () => {
             </div>
             
             <button
-                onClick={() => setShowLowStockOnly(!showLowStockOnly)}
+                onClick={() => { interact(); setShowLowStockOnly(!showLowStockOnly); }}
                 className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${
                     showLowStockOnly 
                     ? 'bg-rose-500 text-white border-rose-600 shadow-lg shadow-rose-500/30' 
@@ -219,7 +224,7 @@ export const Inventory: React.FC = () => {
           <div className="glass-panel bg-white/80 rounded-3xl p-6 lg:p-8 w-full max-w-md shadow-2xl scale-100 transition-transform">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl lg:text-2xl font-bold text-slate-800 tracking-tight">{editingProduct ? 'Edit Item' : 'New Product'}</h3>
-                <button onClick={() => setIsModalOpen(false)} className="text-slate-500 hover:text-slate-700 hover:bg-white p-2 rounded-full transition-all">
+                <button onClick={() => { interact(); setIsModalOpen(false); }} className="text-slate-500 hover:text-slate-700 hover:bg-white p-2 rounded-full transition-all">
                     <X size={24} />
                 </button>
             </div>
@@ -266,7 +271,7 @@ export const Inventory: React.FC = () => {
               <div className="flex gap-3 mt-8 pt-4">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={() => { interact(); setIsModalOpen(false); }}
                   className="flex-1 py-3.5 rounded-xl border border-slate-300 text-slate-600 font-bold hover:bg-white transition-colors"
                 >
                   Cancel
@@ -298,7 +303,7 @@ export const Inventory: React.FC = () => {
                 </p>
                 <div className="flex gap-3 w-full mt-4">
                     <button
-                        onClick={() => setDeleteId(null)}
+                        onClick={() => { interact(); setDeleteId(null); }}
                         className="flex-1 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-white transition-colors"
                     >
                         Cancel

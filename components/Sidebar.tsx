@@ -1,5 +1,6 @@
 import React from 'react';
 import { ShoppingCart, Package, FileText, Cigarette, Archive, ChevronRight, Settings } from 'lucide-react';
+import { interact } from '../services/interactionService';
 
 interface SidebarProps {
   currentView: string;
@@ -14,6 +15,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     { id: 'archive', label: 'Archive', icon: Archive },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
+
+  const handleNavigate = (id: string) => {
+    interact();
+    onNavigate(id);
+  };
 
   return (
     <div className="flex flex-col h-full glass-panel lg:rounded-3xl shadow-2xl lg:shadow-xl animate-fade-in border-r lg:border border-white/40">
@@ -36,7 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
           return (
             <button
               key={item.id}
-              onClick={() => onNavigate(item.id)}
+              onClick={() => handleNavigate(item.id)}
               className={`w-full flex items-center justify-between px-3 py-3.5 rounded-xl transition-all duration-300 group backdrop-blur-sm ${
                 isActive 
                   ? 'bg-white/60 text-indigo-700 shadow-sm translate-x-1 border border-white/50' 
