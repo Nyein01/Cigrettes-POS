@@ -3,6 +3,7 @@ import { Product, CartItem, Sale } from '../types';
 import { subscribeToProducts, saveSale } from '../services/storeService';
 import { ShoppingCart, Trash2, Plus, Minus, CheckCircle, Search, Sparkles, Keyboard } from 'lucide-react';
 import { interact } from '../services/interactionService';
+import { Tooltip } from '../components/Tooltip';
 
 export const POS: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -214,13 +215,14 @@ export const POS: React.FC = () => {
                 <h3 className="font-bold text-slate-800 text-base lg:text-lg">Current Order</h3>
             </div>
             {cart.length > 0 && (
-                <button 
-                    onClick={clearCart} 
-                    title="Clear Cart (Ctrl + Delete)"
-                    className="text-[10px] lg:text-xs font-bold text-rose-600 hover:text-white bg-rose-100/80 hover:bg-rose-500 px-2 lg:px-3 py-1 lg:py-1.5 rounded-full transition-colors flex items-center gap-1 shadow-sm"
-                >
-                    <Trash2 size={12} strokeWidth={2.5} /> CLEAR
-                </button>
+                <Tooltip content="Remove all items (Ctrl+Del)" position="left">
+                    <button 
+                        onClick={clearCart} 
+                        className="text-[10px] lg:text-xs font-bold text-rose-600 hover:text-white bg-rose-100/80 hover:bg-rose-500 px-2 lg:px-3 py-1 lg:py-1.5 rounded-full transition-colors flex items-center gap-1 shadow-sm"
+                    >
+                        <Trash2 size={12} strokeWidth={2.5} /> CLEAR
+                    </button>
+                </Tooltip>
             )}
         </div>
 
@@ -287,26 +289,27 @@ export const POS: React.FC = () => {
               <span className="text-2xl lg:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-700 to-violet-700 tracking-tighter drop-shadow-sm">฿{calculateTotal().toFixed(2)}</span>
            </div>
            
-           <button 
-             onClick={handleCheckout}
-             disabled={cart.length === 0 || isProcessing}
-             title="Charge & Print (Ctrl + Enter)"
-             className={`w-full py-3 lg:py-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all duration-300 shadow-lg border border-white/20 flex items-center justify-center gap-2 transform active:scale-[0.98] ${
-               checkoutComplete 
-                ? 'bg-emerald-500 text-white shadow-emerald-500/40' 
-                : cart.length === 0 
-                    ? 'bg-slate-300/50 text-slate-500 cursor-not-allowed shadow-none' 
-                    : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:shadow-indigo-500/40 hover:-translate-y-1'
-             }`}
-           >
-             {isProcessing ? (
-                <span className="animate-pulse">Processing...</span>
-             ) : checkoutComplete ? (
-                <><CheckCircle size={20} className="animate-bounce" /> Paid Successfully</>
-             ) : (
-                'Charge & Print'
-             )}
-           </button>
+           <Tooltip content="Process sale and clear cart (Ctrl+Enter)" position="top">
+               <button 
+                 onClick={handleCheckout}
+                 disabled={cart.length === 0 || isProcessing}
+                 className={`w-full py-3 lg:py-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all duration-300 shadow-lg border border-white/20 flex items-center justify-center gap-2 transform active:scale-[0.98] ${
+                   checkoutComplete 
+                    ? 'bg-emerald-500 text-white shadow-emerald-500/40' 
+                    : cart.length === 0 
+                        ? 'bg-slate-300/50 text-slate-500 cursor-not-allowed shadow-none' 
+                        : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:shadow-indigo-500/40 hover:-translate-y-1'
+                 }`}
+               >
+                 {isProcessing ? (
+                    <span className="animate-pulse">Processing...</span>
+                 ) : checkoutComplete ? (
+                    <><CheckCircle size={20} className="animate-bounce" /> Paid Successfully</>
+                 ) : (
+                    'Charge & Print'
+                 )}
+               </button>
+           </Tooltip>
         </div>
       </div>
     </div>

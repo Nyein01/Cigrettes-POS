@@ -6,6 +6,7 @@ import { Download, DollarSign, Package, Archive, Trash2, Calendar, AlertTriangle
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { interact } from '../services/interactionService';
+import { Tooltip } from '../components/Tooltip';
 
 export const Reports: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
@@ -105,24 +106,32 @@ export const Reports: React.FC = () => {
         </div>
         
         <div className="flex flex-wrap gap-2 lg:gap-3 w-full lg:w-auto">
-            <button 
-                onClick={() => { interact(); setShowArchiveConfirm(true); }}
-                className="glass-card bg-white/40 border border-white/50 text-slate-700 px-4 py-2 lg:px-5 lg:py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-white/60 transition-colors shadow-sm text-sm lg:text-base flex-1 lg:flex-none justify-center"
-            >
-                <Archive size={18} /> Daily Backup
-            </button>
-            <button 
-                onClick={downloadPDF}
-                className="glass-card bg-white/40 border border-white/50 text-slate-700 px-4 py-2 lg:px-5 lg:py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-white/60 transition-colors shadow-sm text-sm lg:text-base flex-1 lg:flex-none justify-center"
-            >
-                <Download size={18} /> PDF
-            </button>
-            <button 
-                onClick={() => { interact(); setShowClearConfirm(true); }}
-                className="glass-card bg-white/40 border border-white/50 text-rose-600 px-4 py-2 lg:px-5 lg:py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-rose-50 hover:border-rose-200 transition-colors shadow-sm text-sm lg:text-base flex-1 lg:flex-none justify-center"
-            >
-                <Trash2 size={18} /> Clear
-            </button>
+            <Tooltip content="Archive today's sales and start fresh for tomorrow" position="bottom">
+                <button 
+                    onClick={() => { interact(); setShowArchiveConfirm(true); }}
+                    className="glass-card bg-white/40 border border-white/50 text-slate-700 px-4 py-2 lg:px-5 lg:py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-white/60 transition-colors shadow-sm text-sm lg:text-base flex-1 lg:flex-none justify-center"
+                >
+                    <Archive size={18} /> Daily Backup
+                </button>
+            </Tooltip>
+            
+            <Tooltip content="Download detailed report with inventory" position="bottom">
+                <button 
+                    onClick={downloadPDF}
+                    className="glass-card bg-white/40 border border-white/50 text-slate-700 px-4 py-2 lg:px-5 lg:py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-white/60 transition-colors shadow-sm text-sm lg:text-base flex-1 lg:flex-none justify-center"
+                >
+                    <Download size={18} /> PDF
+                </button>
+            </Tooltip>
+            
+            <Tooltip content="Permanently delete all current sales records" position="bottom">
+                <button 
+                    onClick={() => { interact(); setShowClearConfirm(true); }}
+                    className="glass-card bg-white/40 border border-white/50 text-rose-600 px-4 py-2 lg:px-5 lg:py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-rose-50 hover:border-rose-200 transition-colors shadow-sm text-sm lg:text-base flex-1 lg:flex-none justify-center"
+                >
+                    <Trash2 size={18} /> Clear
+                </button>
+            </Tooltip>
         </div>
       </div>
 
@@ -186,13 +195,14 @@ export const Reports: React.FC = () => {
                                     </div>
                                 </td>
                                 <td className="px-4 py-3 lg:px-6 lg:py-4 text-right align-top">
-                                    <button 
-                                        onClick={() => { interact(); setSaleToDelete(sale.id); }}
-                                        className="text-slate-400 hover:text-rose-600 transition-all p-1.5 lg:p-2 rounded-lg hover:bg-rose-100/50 lg:hover:scale-110"
-                                        title="Delete Sale"
-                                    >
-                                        <Trash2 size={16} className="lg:w-[18px] lg:h-[18px]" />
-                                    </button>
+                                    <Tooltip content="Delete this record and restock items" position="left">
+                                        <button 
+                                            onClick={() => { interact(); setSaleToDelete(sale.id); }}
+                                            className="text-slate-400 hover:text-rose-600 transition-all p-1.5 lg:p-2 rounded-lg hover:bg-rose-100/50 lg:hover:scale-110"
+                                        >
+                                            <Trash2 size={16} className="lg:w-[18px] lg:h-[18px]" />
+                                        </button>
+                                    </Tooltip>
                                 </td>
                             </tr>
                         ))}

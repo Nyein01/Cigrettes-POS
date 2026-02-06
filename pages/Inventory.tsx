@@ -4,6 +4,7 @@ import { Product } from '../types';
 import { subscribeToProducts, addProduct, updateProduct, deleteProduct } from '../services/storeService';
 import { Plus, Edit2, Trash2, Search, X, Box, AlertCircle, Save, AlertTriangle, Filter } from 'lucide-react';
 import { interact } from '../services/interactionService';
+import { Tooltip } from '../components/Tooltip';
 
 export const Inventory: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -98,12 +99,14 @@ export const Inventory: React.FC = () => {
             <h2 className="text-2xl lg:text-3xl font-bold text-slate-800 tracking-tight">Inventory</h2>
             <p className="text-slate-600 font-medium mt-1 text-sm lg:text-base">Manage your product database</p>
         </div>
-        <button
-          onClick={() => handleOpenModal()}
-          className="bg-indigo-600 text-white px-5 py-2.5 lg:px-6 lg:py-3 rounded-xl flex items-center justify-center gap-2 font-bold shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 w-full sm:w-auto text-sm lg:text-base transition-all hover:-translate-y-0.5"
-        >
-          <Plus size={20} strokeWidth={2.5} /> Add New Item
-        </button>
+        <Tooltip content="Create a new product listing" position="bottom">
+            <button
+            onClick={() => handleOpenModal()}
+            className="bg-indigo-600 text-white px-5 py-2.5 lg:px-6 lg:py-3 rounded-xl flex items-center justify-center gap-2 font-bold shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 w-full sm:w-auto text-sm lg:text-base transition-all hover:-translate-y-0.5"
+            >
+            <Plus size={20} strokeWidth={2.5} /> Add New Item
+            </button>
+        </Tooltip>
       </div>
 
       {/* Low Stock Alert Banner */}
@@ -144,22 +147,24 @@ export const Inventory: React.FC = () => {
                 />
             </div>
             
-            <button
-                onClick={() => { interact(); setShowLowStockOnly(!showLowStockOnly); }}
-                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${
-                    showLowStockOnly 
-                    ? 'bg-rose-500 text-white border-rose-600 shadow-lg shadow-rose-500/30' 
-                    : 'bg-white/40 text-slate-600 border-white/50 hover:bg-white/60'
-                }`}
-            >
-                <Filter size={16} strokeWidth={2.5} />
-                <span>Low Stock</span>
-                {lowStockItems.length > 0 && (
-                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] min-w-[20px] text-center ${showLowStockOnly ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-600'}`}>
-                        {lowStockItems.length}
-                    </span>
-                )}
-            </button>
+            <Tooltip content={showLowStockOnly ? "Show all items" : "Show only low stock items"} position="bottom">
+                <button
+                    onClick={() => { interact(); setShowLowStockOnly(!showLowStockOnly); }}
+                    className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${
+                        showLowStockOnly 
+                        ? 'bg-rose-500 text-white border-rose-600 shadow-lg shadow-rose-500/30' 
+                        : 'bg-white/40 text-slate-600 border-white/50 hover:bg-white/60'
+                    }`}
+                >
+                    <Filter size={16} strokeWidth={2.5} />
+                    <span>Low Stock</span>
+                    {lowStockItems.length > 0 && (
+                        <span className={`px-1.5 py-0.5 rounded-md text-[10px] min-w-[20px] text-center ${showLowStockOnly ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-600'}`}>
+                            {lowStockItems.length}
+                        </span>
+                    )}
+                </button>
+            </Tooltip>
         </div>
         
         <div className="overflow-x-auto">
@@ -190,12 +195,16 @@ export const Inventory: React.FC = () => {
                     <td className="px-6 py-4 font-mono font-medium text-slate-700">฿{p.basePrice.toFixed(2)}</td>
                     <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2 opacity-100 lg:opacity-60 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => handleOpenModal(p)} className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-white/50 rounded-lg transition-all lg:hover:scale-110">
-                                <Edit2 size={18} />
-                            </button>
-                            <button onClick={() => promptDelete(p.id)} className="p-2 text-slate-500 hover:text-rose-600 hover:bg-white/50 rounded-lg transition-all lg:hover:scale-110">
-                                <Trash2 size={18} />
-                            </button>
+                            <Tooltip content="Edit item details" position="top">
+                                <button onClick={() => handleOpenModal(p)} className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-white/50 rounded-lg transition-all lg:hover:scale-110">
+                                    <Edit2 size={18} />
+                                </button>
+                            </Tooltip>
+                            <Tooltip content="Delete item" position="top">
+                                <button onClick={() => promptDelete(p.id)} className="p-2 text-slate-500 hover:text-rose-600 hover:bg-white/50 rounded-lg transition-all lg:hover:scale-110">
+                                    <Trash2 size={18} />
+                                </button>
+                            </Tooltip>
                         </div>
                     </td>
                 </tr>

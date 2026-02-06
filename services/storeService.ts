@@ -11,13 +11,18 @@ import {
   orderBy,
   getDocs,
   increment,
-  getDoc
+  getDoc,
+  limit,
+  QuerySnapshot,
+  DocumentData
 } from 'firebase/firestore';
-import { Product, Sale } from '../types';
+import { Product, Sale, HighScore, Note } from '../types';
 
 const PRODUCTS_COLLECTION = 'products';
 const SALES_COLLECTION = 'sales';
 const ARCHIVE_COLLECTION = 'archived_sales';
+const HIGHSCORES_COLLECTION = 'arcade_highscores';
+const NOTES_COLLECTION = 'breakroom_notes';
 
 // --- Products (Real-time) ---
 
@@ -25,7 +30,7 @@ const ARCHIVE_COLLECTION = 'archived_sales';
 export const subscribeToProducts = (callback: (products: Product[]) => void) => {
   const q = query(collection(db, PRODUCTS_COLLECTION), orderBy('name'));
   
-  return onSnapshot(q, (snapshot) => {
+  return onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
     const products = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
@@ -72,7 +77,7 @@ export const deleteProduct = async (id: string): Promise<void> => {
 export const subscribeToSales = (callback: (sales: Sale[]) => void) => {
   const q = query(collection(db, SALES_COLLECTION), orderBy('date', 'asc')); // 'asc' for charts
   
-  return onSnapshot(q, (snapshot) => {
+  return onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
     const sales = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
@@ -259,7 +264,7 @@ export const checkAndArchiveOldSales = async (): Promise<void> => {
 export const subscribeToArchivedSales = (callback: (sales: Sale[]) => void) => {
   const q = query(collection(db, ARCHIVE_COLLECTION), orderBy('date', 'desc'));
   
-  return onSnapshot(q, (snapshot) => {
+  return onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
     const sales = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
@@ -310,3 +315,54 @@ export const getProductsOnce = (): Promise<Product[]> => {
         });
     });
 };
+
+// --- Arcade High Scores ---
+
+export const subscribeToHighScores = (callback: (scores: HighScore[]) => void) => {
+    // Get top 20 high scores
+    const q = query(collection(db, HIGHSCORES_COLLECTION), orderBy('score', 'desc'), limit(20));
+    return onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
+      const scores = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as HighScore[];
+      callback(scores);
+    });
+};
+  
+export const saveHighScore = async (score: Omit<HighScore, 'id'>) => {
+    try {
+        await addDoc(collection(db, HIGHSCORES_COLLECTION), score);
+    } catch (e) {
+        console.error("Error saving high score", e);
+    }
+}
+
+// --- Break Room Notes ---
+
+export const subscribeToNotes = (callback: (notes: Note[]) => void) => {
+  const q = query(collection(db, NOTES_COLLECTION), orderBy('date', 'desc'));
+  return onSnapshot(q, (snapshot: QuerySnapshot<DocumentData>) => {
+    const notes = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as Note[];
+    callback(notes);
+  });
+};
+
+export const addNote = async (note: Omit<Note, 'id'>): Promise<void> => {
+    try {
+        await addDoc(collection(db, NOTES_COLLECTION), note);
+    } catch (e) {
+        console.error("Error adding note", e);
+    }
+}
+
+export const deleteNote = async (id: string): Promise<void> => {
+    try {
+        await deleteDoc(doc(db, NOTES_COLLECTION, id));
+    } catch (e) {
+        console.error("Error deleting note", e);
+    }
+}

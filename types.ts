@@ -27,3 +27,25 @@ export interface SalesReport {
   salesCount: number;
   aiAnalysis?: string;
 }
+
+export interface HighScore {
+  id: string;
+  name: string;
+  score: number;
+  date: string;
+}
+
+export interface Note {
+  id: string;
+  text: string;
+  date: string;
+  color: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'model';
+  text: string;
+  timestamp: number;
+  isStreaming?: boolean;
+}

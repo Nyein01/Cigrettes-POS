@@ -4,6 +4,7 @@ import { Sale } from '../types';
 import { subscribeToArchivedSales, restoreArchivedSales } from '../services/storeService';
 import { Archive as ArchiveIcon, RefreshCcw, Search, Folder, ChevronLeft, Calendar, FileText, DollarSign } from 'lucide-react';
 import { interact } from '../services/interactionService';
+import { Tooltip } from '../components/Tooltip';
 
 export const Archive: React.FC = () => {
   const [archivedSales, setArchivedSales] = useState<Sale[]>([]);
@@ -91,12 +92,14 @@ export const Archive: React.FC = () => {
         <div>
             <div className="flex items-center gap-2">
                 {selectedDateKey && (
-                    <button 
-                        onClick={() => { interact(); setSelectedDateKey(null); }}
-                        className="p-1.5 -ml-2 text-slate-400 hover:text-indigo-600 hover:bg-white/40 rounded-full transition-all"
-                    >
-                        <ChevronLeft size={28} />
-                    </button>
+                    <Tooltip content="Return to folder list" position="right">
+                        <button 
+                            onClick={() => { interact(); setSelectedDateKey(null); }}
+                            className="p-1.5 -ml-2 text-slate-400 hover:text-indigo-600 hover:bg-white/40 rounded-full transition-all"
+                        >
+                            <ChevronLeft size={28} />
+                        </button>
+                    </Tooltip>
                 )}
                 <h2 className="text-2xl lg:text-3xl font-bold text-slate-800 tracking-tight">
                     {selectedDateKey ? selectedDateKey : 'Archive Backups'}
@@ -108,12 +111,14 @@ export const Archive: React.FC = () => {
         </div>
         
         {archivedSales.length > 0 && !selectedDateKey && (
-             <button
-                onClick={() => { interact(); setShowRestoreConfirm(true); }}
-                className="bg-indigo-600 text-white px-5 py-2.5 lg:px-6 lg:py-3 rounded-xl flex items-center justify-center gap-2 font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/30 w-full sm:w-auto text-sm lg:text-base"
-            >
-                <RefreshCcw size={18} strokeWidth={2.5} /> Restore All Data
-            </button>
+             <Tooltip content="Restore all archive data to the main dashboard" position="bottom">
+                <button
+                    onClick={() => { interact(); setShowRestoreConfirm(true); }}
+                    className="bg-indigo-600 text-white px-5 py-2.5 lg:px-6 lg:py-3 rounded-xl flex items-center justify-center gap-2 font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/30 w-full sm:w-auto text-sm lg:text-base"
+                >
+                    <RefreshCcw size={18} strokeWidth={2.5} /> Restore All Data
+                </button>
+             </Tooltip>
         )}
       </div>
 

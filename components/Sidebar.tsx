@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingCart, Package, FileText, Cigarette, Archive, ChevronRight, Settings } from 'lucide-react';
+import { ShoppingCart, Package, FileText, Cigarette, Archive, ChevronRight, Settings, Gamepad2, Bot } from 'lucide-react';
 import { interact } from '../services/interactionService';
 
 interface SidebarProps {
@@ -13,6 +13,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     { id: 'inventory', label: 'Inventory', icon: Package },
     { id: 'reports', label: 'Reports', icon: FileText },
     { id: 'archive', label: 'Archive', icon: Archive },
+    { id: 'oracle', label: 'The Oracle', icon: Bot },
+    { id: 'arcade', label: 'Arcade', icon: Gamepad2 },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
