@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Product } from '../types';
 import { subscribeToProducts, addProduct, updateProduct, deleteProduct } from '../services/storeService';
-import { Plus, Edit2, Trash2, Search, X, Box, AlertCircle, Save } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, X, Box, AlertCircle, Save, AlertTriangle, Filter } from 'lucide-react';
 
 export const Inventory: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -10,6 +11,7 @@ export const Inventory: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '', stock: 0, basePrice: 0
@@ -74,41 +76,90 @@ export const Inventory: React.FC = () => {
     }
   };
 
-  const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    p.brand.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Threshold set to 2
+  const lowStockItems = products.filter(p => p.stock < 2);
+
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          p.brand.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesLowStock = showLowStockOnly ? p.stock < 2 : true;
+    return matchesSearch && matchesLowStock;
+  });
 
   return (
-    <div className="p-4 md:p-8 h-full overflow-y-auto bg-slate-50 lg:rounded-2xl animate-fade-in">
+    <div className="p-4 md:p-8 h-full overflow-y-auto animate-fade-in">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 lg:mb-8 gap-4">
         <div>
             <h2 className="text-2xl lg:text-3xl font-bold text-slate-800 tracking-tight">Inventory</h2>
-            <p className="text-slate-500 font-medium mt-1 text-sm lg:text-base">Manage your product database</p>
+            <p className="text-slate-600 font-medium mt-1 text-sm lg:text-base">Manage your product database</p>
         </div>
         <button
           onClick={() => handleOpenModal()}
-          className="btn-hover-effect bg-indigo-600 text-white px-5 py-2.5 lg:px-6 lg:py-3 rounded-xl flex items-center justify-center gap-2 font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 w-full sm:w-auto text-sm lg:text-base"
+          className="bg-indigo-600 text-white px-5 py-2.5 lg:px-6 lg:py-3 rounded-xl flex items-center justify-center gap-2 font-bold shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 w-full sm:w-auto text-sm lg:text-base transition-all hover:-translate-y-0.5"
         >
           <Plus size={20} strokeWidth={2.5} /> Add New Item
         </button>
       </div>
 
-      <div className="bg-white rounded-xl lg:rounded-2xl border border-slate-200 shadow-sm overflow-hidden animate-fade-in-delay-1">
-        <div className="p-4 lg:p-5 border-b border-slate-100 flex items-center gap-3 bg-slate-50/50">
-            <Search className="text-slate-400" size={20} />
-            <input 
-                type="text" 
-                placeholder="Search inventory..." 
-                className="bg-transparent border-none outline-none text-slate-900 w-full placeholder-slate-400 font-medium"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      {/* Low Stock Alert Banner */}
+      {lowStockItems.length > 0 && (
+        <div className="mb-6 glass-panel bg-rose-100/60 border-rose-200 text-rose-800 p-4 rounded-xl flex items-center justify-between shadow-sm animate-fade-in ring-1 ring-rose-200">
+            <div className="flex items-center gap-3">
+                <div className="bg-white/50 p-2 rounded-lg text-rose-600 shadow-sm">
+                    <AlertTriangle size={20} />
+                </div>
+                <div>
+                    <h4 className="font-bold text-sm lg:text-base">Low Stock Alert</h4>
+                    <p className="text-xs lg:text-sm text-rose-700/80 font-medium">
+                        There are <span className="font-bold">{lowStockItems.length}</span> items with less than 2 units.
+                    </p>
+                </div>
+            </div>
+            {!showLowStockOnly && (
+                <button 
+                    onClick={() => setShowLowStockOnly(true)}
+                    className="text-xs lg:text-sm font-bold bg-white/60 hover:bg-white text-rose-700 px-3 py-1.5 rounded-lg transition-all shadow-sm"
+                >
+                    View Items
+                </button>
+            )}
+        </div>
+      )}
+
+      <div className="glass-panel rounded-xl lg:rounded-2xl overflow-hidden animate-fade-in-delay-1 shadow-xl">
+        <div className="p-4 lg:p-5 border-b border-white/30 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 bg-white/20">
+            <div className="flex items-center gap-3 flex-1 bg-white/40 border border-white/30 rounded-xl px-3 py-2.5 focus-within:bg-white/60 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                <Search className="text-slate-500" size={20} />
+                <input 
+                    type="text" 
+                    placeholder="Search inventory..." 
+                    className="bg-transparent border-none outline-none text-slate-900 w-full placeholder-slate-500 font-medium"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+            
+            <button
+                onClick={() => setShowLowStockOnly(!showLowStockOnly)}
+                className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all border ${
+                    showLowStockOnly 
+                    ? 'bg-rose-500 text-white border-rose-600 shadow-lg shadow-rose-500/30' 
+                    : 'bg-white/40 text-slate-600 border-white/50 hover:bg-white/60'
+                }`}
+            >
+                <Filter size={16} strokeWidth={2.5} />
+                <span>Low Stock</span>
+                {lowStockItems.length > 0 && (
+                    <span className={`px-1.5 py-0.5 rounded-md text-[10px] min-w-[20px] text-center ${showLowStockOnly ? 'bg-white/20 text-white' : 'bg-rose-100 text-rose-600'}`}>
+                        {lowStockItems.length}
+                    </span>
+                )}
+            </button>
         </div>
         
         <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[600px]">
-            <thead className="bg-slate-50 text-slate-500 font-semibold text-xs uppercase border-b border-slate-200">
+            <thead className="bg-white/30 text-slate-600 font-semibold text-xs uppercase border-b border-white/30">
                 <tr>
                 <th className="px-6 py-4">Product Name</th>
                 <th className="px-6 py-4">Stock</th>
@@ -118,23 +169,26 @@ export const Inventory: React.FC = () => {
             </thead>
             <tbody>
                 {loading ? (
-                    <tr><td colSpan={4} className="p-10 text-center text-slate-400 font-medium animate-pulse">Loading Inventory...</td></tr>
+                    <tr><td colSpan={4} className="p-10 text-center text-slate-500 font-medium animate-pulse">Loading Inventory...</td></tr>
                 ) : filteredProducts.map((p, idx) => (
-                <tr key={p.id} className="hover:bg-indigo-50/30 transition-colors border-b border-slate-100 last:border-0 group animate-fade-in" style={{ animationDelay: `${idx * 0.03}s` }}>
-                    <td className="px-6 py-4 font-bold text-slate-800">{p.name}</td>
+                <tr key={p.id} className={`transition-colors border-b border-white/20 last:border-0 group animate-fade-in ${p.stock < 2 ? 'bg-rose-50/30 hover:bg-rose-50/50' : 'hover:bg-white/40'}`} style={{ animationDelay: `${idx * 0.03}s` }}>
+                    <td className="px-6 py-4 font-bold text-slate-800">
+                        {p.name}
+                        {p.stock < 2 && <span className="ml-2 inline-flex lg:hidden text-rose-500"><AlertCircle size={12} /></span>}
+                    </td>
                     <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${p.stock < 10 ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
-                            {p.stock < 10 && <AlertCircle size={14} />}
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border backdrop-blur-sm ${p.stock < 2 ? 'bg-rose-100/60 text-rose-700 border-rose-200 shadow-sm' : 'bg-emerald-100/50 text-emerald-700 border-emerald-200'}`}>
+                            {p.stock < 2 && <AlertCircle size={14} />}
                             {p.stock} Units
                         </span>
                     </td>
-                    <td className="px-6 py-4 font-mono font-medium text-slate-600">฿{p.basePrice.toFixed(2)}</td>
+                    <td className="px-6 py-4 font-mono font-medium text-slate-700">฿{p.basePrice.toFixed(2)}</td>
                     <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2 opacity-100 lg:opacity-60 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => handleOpenModal(p)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all lg:hover:scale-110">
+                            <button onClick={() => handleOpenModal(p)} className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-white/50 rounded-lg transition-all lg:hover:scale-110">
                                 <Edit2 size={18} />
                             </button>
-                            <button onClick={() => promptDelete(p.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all lg:hover:scale-110">
+                            <button onClick={() => promptDelete(p.id)} className="p-2 text-slate-500 hover:text-rose-600 hover:bg-white/50 rounded-lg transition-all lg:hover:scale-110">
                                 <Trash2 size={18} />
                             </button>
                         </div>
@@ -145,10 +199,11 @@ export const Inventory: React.FC = () => {
                     <tr>
                         <td colSpan={4} className="p-16 text-center text-slate-400">
                             <div className="flex flex-col items-center gap-3">
-                                <div className="bg-slate-100 p-4 rounded-full">
+                                <div className="bg-white/40 p-4 rounded-full">
                                     <Box size={40} strokeWidth={1.5} />
                                 </div>
-                                <span className="font-medium">No items found in inventory</span>
+                                <span className="font-medium">No items found {showLowStockOnly ? 'in low stock' : ''}</span>
+                                {showLowStockOnly && <button onClick={() => setShowLowStockOnly(false)} className="text-indigo-600 text-sm font-bold hover:underline">Show all items</button>}
                             </div>
                         </td>
                     </tr>
@@ -158,13 +213,13 @@ export const Inventory: React.FC = () => {
         </div>
       </div>
 
-      {/* Edit/Add Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl p-6 lg:p-8 w-full max-w-md shadow-2xl scale-100 transition-transform">
+      {/* Edit/Add Modal - Rendered via Portal */}
+      {isModalOpen && createPortal(
+        <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="glass-panel bg-white/80 rounded-3xl p-6 lg:p-8 w-full max-w-md shadow-2xl scale-100 transition-transform">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl lg:text-2xl font-bold text-slate-800 tracking-tight">{editingProduct ? 'Edit Item' : 'New Product'}</h3>
-                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-2 rounded-full transition-all">
+                <button onClick={() => setIsModalOpen(false)} className="text-slate-500 hover:text-slate-700 hover:bg-white p-2 rounded-full transition-all">
                     <X size={24} />
                 </button>
             </div>
@@ -175,7 +230,7 @@ export const Inventory: React.FC = () => {
                 <input
                     required
                     type="text"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-medium"
+                    className="w-full bg-white/50 border border-slate-300/50 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all font-medium"
                     placeholder="e.g. Marlboro Red Label"
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -189,7 +244,7 @@ export const Inventory: React.FC = () => {
                     required
                     type="number"
                     min="0"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-medium"
+                    className="w-full bg-white/50 border border-slate-300/50 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all font-medium"
                     value={formData.stock}
                     onChange={e => setFormData({ ...formData, stock: Number(e.target.value) })}
                   />
@@ -201,7 +256,7 @@ export const Inventory: React.FC = () => {
                     type="number"
                     min="0"
                     step="0.01"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-medium"
+                    className="w-full bg-white/50 border border-slate-300/50 rounded-xl px-4 py-3 text-slate-900 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all font-medium"
                     value={formData.basePrice}
                     onChange={e => setFormData({ ...formData, basePrice: Number(e.target.value) })}
                   />
@@ -212,26 +267,27 @@ export const Inventory: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-3.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-colors"
+                  className="flex-1 py-3.5 rounded-xl border border-slate-300 text-slate-600 font-bold hover:bg-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3.5 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2"
+                  className="flex-1 py-3.5 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2"
                 >
                   <Save size={18} /> Save Item
                 </button>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Delete Confirmation Modal */}
-      {deleteId && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white rounded-3xl p-6 lg:p-8 w-full max-w-sm shadow-2xl">
+      {/* Delete Confirmation Modal - Rendered via Portal */}
+      {deleteId && createPortal(
+        <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="glass-panel bg-white/90 rounded-3xl p-6 lg:p-8 w-full max-w-sm shadow-2xl">
             <div className="flex flex-col items-center text-center gap-4">
                 <div className="bg-rose-100 p-4 rounded-full text-rose-600 shadow-inner">
                     <Trash2 size={32} />
@@ -243,20 +299,21 @@ export const Inventory: React.FC = () => {
                 <div className="flex gap-3 w-full mt-4">
                     <button
                         onClick={() => setDeleteId(null)}
-                        className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-700 font-bold hover:bg-slate-50 transition-colors"
+                        className="flex-1 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-white transition-colors"
                     >
                         Cancel
                     </button>
                     <button
                         onClick={confirmDelete}
-                        className="flex-1 py-3 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 transition-all shadow-lg shadow-rose-200"
+                        className="flex-1 py-3 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 transition-all shadow-lg shadow-rose-500/30"
                     >
                         Delete
                     </button>
                 </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
