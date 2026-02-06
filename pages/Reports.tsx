@@ -104,7 +104,7 @@ export const Reports: React.FC = () => {
                 onClick={() => setShowArchiveConfirm(true)}
                 className="glass-card bg-white/40 border border-white/50 text-slate-700 px-4 py-2 lg:px-5 lg:py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-white/60 transition-colors shadow-sm text-sm lg:text-base flex-1 lg:flex-none justify-center"
             >
-                <Archive size={18} /> Archive
+                <Archive size={18} /> Daily Backup
             </button>
             <button 
                 onClick={downloadPDF}
@@ -236,7 +236,7 @@ export const Reports: React.FC = () => {
                 </div>
                 <h3 className="text-xl font-bold text-slate-900">Clear All History?</h3>
                 <p className="text-sm text-slate-500 font-medium">
-                    This will permanently delete all sales records. Use "Archive" if you want to save them.
+                    This will permanently delete all sales records. Use "Daily Backup" if you want to save them.
                 </p>
                 <div className="flex gap-3 w-full mt-4">
                     <button onClick={() => setShowClearConfirm(false)} className="flex-1 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-white transition-colors">Cancel</button>
@@ -256,13 +256,13 @@ export const Reports: React.FC = () => {
                 <div className="bg-amber-100 p-4 rounded-full text-amber-600 shadow-inner">
                     <Archive size={32} />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900">Archive Data?</h3>
+                <h3 className="text-xl font-bold text-slate-900">Create Daily Backup?</h3>
                 <p className="text-sm text-slate-500 font-medium">
-                    Moves current sales to the Archive tab. The dashboard will be cleared for a new day.
+                    Moves current sales to the Archive tab grouped by today's date.<br/>The main dashboard will be cleared for a new day.
                 </p>
                 <div className="flex gap-3 w-full mt-4">
                     <button onClick={() => setShowArchiveConfirm(false)} className="flex-1 py-3 rounded-xl border border-slate-300 text-slate-700 font-bold hover:bg-white transition-colors">Cancel</button>
-                    <button onClick={handleArchive} className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/30">Archive</button>
+                    <button onClick={handleArchive} className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-bold hover:bg-amber-600 transition-all shadow-lg shadow-amber-500/30">Backup</button>
                 </div>
             </div>
           </div>

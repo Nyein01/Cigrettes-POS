@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingCart, Package, FileText, Cigarette, Archive, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Package, FileText, Cigarette, Archive, ChevronRight, Settings } from 'lucide-react';
 
 interface SidebarProps {
   currentView: string;
@@ -12,6 +12,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     { id: 'inventory', label: 'Inventory', icon: Package },
     { id: 'reports', label: 'Reports', icon: FileText },
     { id: 'archive', label: 'Archive', icon: Archive },
+    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   return (

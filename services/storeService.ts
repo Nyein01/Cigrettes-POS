@@ -200,6 +200,61 @@ export const archiveCurrentSales = async (): Promise<void> => {
   }
 };
 
+// Auto-archive sales from previous business days (Shift ends at 6 AM)
+export const checkAndArchiveOldSales = async (): Promise<void> => {
+  try {
+    const q = query(collection(db, SALES_COLLECTION));
+    const snapshot = await getDocs(q);
+
+    const now = new Date();
+    
+    // Define the start of the current business shift (6 AM)
+    // If it's 10 AM, the shift started today at 6 AM.
+    // If it's 2 AM, the shift started yesterday at 6 AM.
+    let startOfCurrentShift = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 6, 0, 0);
+
+    if (now.getHours() < 6) {
+        startOfCurrentShift.setDate(startOfCurrentShift.getDate() - 1);
+    }
+
+    const BATCH_SIZE = 250;
+    let batch = writeBatch(db);
+    let count = 0;
+    let operationCount = 0;
+
+    for (const docSnapshot of snapshot.docs) {
+        const sale = docSnapshot.data() as Sale;
+        const saleDate = new Date(sale.date);
+
+        // If sale is before the start of the current shift, move it to archive
+        if (saleDate < startOfCurrentShift) {
+            const newRef = doc(collection(db, ARCHIVE_COLLECTION), docSnapshot.id);
+            batch.set(newRef, sale);
+            batch.delete(docSnapshot.ref);
+
+            count++;
+            operationCount++;
+
+            if (count >= BATCH_SIZE) {
+                await batch.commit();
+                batch = writeBatch(db);
+                count = 0;
+            }
+        }
+    }
+
+    if (count > 0) {
+        await batch.commit();
+    }
+    
+    if (operationCount > 0) {
+        console.log(`Auto-archived ${operationCount} sales from previous shifts (cutoff 6 AM).`);
+    }
+  } catch (error) {
+    console.error("Error auto-archiving sales:", error);
+  }
+};
+
 // Subscribe to Archived Sales
 export const subscribeToArchivedSales = (callback: (sales: Sale[]) => void) => {
   const q = query(collection(db, ARCHIVE_COLLECTION), orderBy('date', 'desc'));
