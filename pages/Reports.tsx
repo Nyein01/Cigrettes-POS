@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Sale } from '../types';
 import { subscribeToSales, getProductsOnce, clearSalesHistory, archiveCurrentSales, deleteSale } from '../services/storeService';
-import { Download, DollarSign, Package, Archive, Trash2, Calendar, AlertTriangle } from 'lucide-react';
+import { Download, DollarSign, Package, Archive, Trash2, AlertTriangle, Tag, Percent } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { interact } from '../services/interactionService';
@@ -23,10 +23,19 @@ export const Reports: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  // --- Statistics Calculation ---
   const totalRevenue = sales.reduce((sum, s) => sum + s.total, 0);
   const totalItems = sales.reduce((sum, s) => sum + s.items.reduce((q, i) => q + i.quantity, 0), 0);
-  // Keep profit for PDF
-  const totalProfit = sales.reduce((sum, s) => sum + s.profit, 0);
+  
+  // Calculate total discount given
+  const totalDiscount = sales.reduce((sum, s) => {
+      const saleDiscount = s.items.reduce((d, item) => {
+          const originalTotal = item.basePrice * item.quantity;
+          const soldTotal = item.negotiatedPrice * item.quantity;
+          return d + (originalTotal - soldTotal);
+      }, 0);
+      return sum + saleDiscount;
+  }, 0);
 
   const downloadPDF = async () => {
     interact();
@@ -35,7 +44,7 @@ export const Reports: React.FC = () => {
 
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
-    doc.text("Khao San Cigarettes - Report", 14, 20);
+    doc.text("Khao San Cigarettes - Sales Report", 14, 20);
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
     doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
@@ -47,7 +56,7 @@ export const Reports: React.FC = () => {
     ]);
 
     autoTable(doc, {
-        head: [['Name', 'Stock', 'Price']], 
+        head: [['Inventory Item', 'Stock', 'List Price']], 
         body: inventoryData,
         startY: 35,
         theme: 'grid',
@@ -57,13 +66,18 @@ export const Reports: React.FC = () => {
     const lastY = (doc as any).lastAutoTable.finalY || 50;
     
     const salesData = sales.map(s => [
-        new Date(s.date).toLocaleDateString(),
-        s.items.map(i => `${i.name} (${i.quantity})`).join(', '),
+        new Date(s.date).toLocaleDateString() + ' ' + new Date(s.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+        s.items.map(i => {
+            const discount = i.basePrice - i.negotiatedPrice;
+            return discount > 0 
+                ? `${i.name} (x${i.quantity}) - ${discount.toFixed(0)} off`
+                : `${i.name} (x${i.quantity})`;
+        }).join(', '),
         `B${s.total.toFixed(2)}`
     ]);
 
     autoTable(doc, {
-        head: [['Date', 'Items', 'Total']],
+        head: [['Date/Time', 'Items Sold', 'Total Collected']],
         body: salesData,
         startY: lastY + 15,
         theme: 'grid',
@@ -72,9 +86,9 @@ export const Reports: React.FC = () => {
 
     const finalY = (doc as any).lastAutoTable.finalY || 100;
     doc.text(`Total Revenue: B${totalRevenue.toFixed(2)}`, 14, finalY + 10);
-    doc.text(`Total Profit: B${totalProfit.toFixed(2)}`, 14, finalY + 16);
+    doc.text(`Total Discounts Given: B${totalDiscount.toFixed(2)}`, 14, finalY + 16);
 
-    doc.save("khaosan_report.pdf");
+    doc.save("khaosan_sales_report.pdf");
   };
 
   const handleDeleteSale = async () => {
@@ -98,11 +112,13 @@ export const Reports: React.FC = () => {
   }
 
   return (
-    <div className="p-4 md:p-8 h-full overflow-y-auto animate-fade-in">
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 lg:mb-8 gap-4 lg:gap-6">
+    <div className="p-4 md:p-8 h-full overflow-y-auto animate-fade-in flex flex-col">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-6 lg:mb-8 gap-4 lg:gap-6 shrink-0">
         <div>
-           <h2 className="text-2xl lg:text-3xl font-bold text-slate-800 tracking-tight">Analytics</h2>
-           <p className="text-slate-600 font-medium mt-1 text-sm lg:text-base">Overview of your store performance</p>
+           <h2 className="text-2xl lg:text-3xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
+               Daily Sales List
+           </h2>
+           <p className="text-slate-600 font-medium mt-1 text-sm lg:text-base">Track revenue and discounts</p>
         </div>
         
         <div className="flex flex-wrap gap-2 lg:gap-3 w-full lg:w-auto">
@@ -135,31 +151,41 @@ export const Reports: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 mb-6 lg:mb-8">
-        <div className="glass-card rounded-2xl p-5 lg:p-6 flex items-center justify-between group">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mb-6 shrink-0">
+        <div className="glass-card rounded-2xl p-5 lg:p-6 flex items-center justify-between group relative overflow-hidden">
             <div>
                 <p className="text-xs lg:text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Total Revenue</p>
-                <p className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tighter group-hover:text-indigo-600 transition-colors">฿{totalRevenue.toFixed(2)}</p>
+                <p className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tighter group-hover:text-emerald-600 transition-colors">฿{totalRevenue.toFixed(2)}</p>
             </div>
-            <div className="bg-emerald-100/50 p-3 lg:p-4 rounded-2xl text-emerald-600 group-hover:scale-110 transition-transform backdrop-blur-sm">
+            <div className="bg-emerald-100/50 p-3 lg:p-4 rounded-2xl text-emerald-600 backdrop-blur-sm z-10">
                 <DollarSign size={24} className="lg:w-7 lg:h-7" strokeWidth={2.5} />
             </div>
         </div>
-        <div className="glass-card rounded-2xl p-5 lg:p-6 flex items-center justify-between group">
+        <div className="glass-card rounded-2xl p-5 lg:p-6 flex items-center justify-between group relative overflow-hidden">
             <div>
                 <p className="text-xs lg:text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Units Sold</p>
-                <p className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tighter group-hover:text-indigo-600 transition-colors">{totalItems}</p>
+                <p className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tighter group-hover:text-blue-600 transition-colors">{totalItems}</p>
             </div>
-            <div className="bg-blue-100/50 p-3 lg:p-4 rounded-2xl text-blue-600 group-hover:scale-110 transition-transform backdrop-blur-sm">
+            <div className="bg-blue-100/50 p-3 lg:p-4 rounded-2xl text-blue-600 backdrop-blur-sm z-10">
                 <Package size={24} className="lg:w-7 lg:h-7" strokeWidth={2.5} />
+            </div>
+        </div>
+        <div className="glass-card rounded-2xl p-5 lg:p-6 flex items-center justify-between group relative overflow-hidden">
+            <div>
+                <p className="text-xs lg:text-sm font-bold text-slate-500 uppercase tracking-wider mb-2">Discounts Given</p>
+                <p className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tighter group-hover:text-amber-600 transition-colors">฿{totalDiscount.toFixed(2)}</p>
+            </div>
+            <div className="bg-amber-100/50 p-3 lg:p-4 rounded-2xl text-amber-600 backdrop-blur-sm z-10">
+                <Percent size={24} className="lg:w-7 lg:h-7" strokeWidth={2.5} />
             </div>
         </div>
       </div>
 
       {/* Sales List */}
-      <div className="glass-panel rounded-xl lg:rounded-2xl overflow-hidden flex flex-col h-auto min-h-[400px] lg:min-h-[500px] animate-fade-in-delay-1 shadow-xl">
+      <div className="glass-panel rounded-xl lg:rounded-2xl overflow-hidden flex flex-col flex-1 min-h-[400px] shadow-xl">
             <div className="p-4 lg:p-6 border-b border-white/30 flex justify-between items-center bg-white/20">
-                <h3 className="font-bold text-slate-800 text-base lg:text-lg">Recent Sales</h3>
+                <h3 className="font-bold text-slate-800 text-base lg:text-lg">Recent Transactions</h3>
                 <span className="text-[10px] lg:text-xs font-bold text-indigo-700 bg-indigo-100/50 backdrop-blur-sm px-2 py-0.5 lg:px-3 lg:py-1 rounded-full border border-indigo-200">{sales.length} Records</span>
             </div>
             <div className="flex-1 overflow-y-auto">
@@ -181,12 +207,29 @@ export const Reports: React.FC = () => {
                                 </td>
                                 <td className="px-4 py-3 lg:px-6 lg:py-4 align-top">
                                     <div className="flex flex-col gap-1.5">
-                                        {sale.items.map((item, idx) => (
-                                            <div key={idx} className="flex items-center gap-2 text-slate-700">
-                                                <span className="font-medium text-xs lg:text-sm line-clamp-1">{item.name}</span>
-                                                <span className="text-[10px] font-bold bg-white/50 text-slate-600 px-1.5 py-0.5 rounded border border-white/40">x{item.quantity}</span>
-                                            </div>
-                                        ))}
+                                        {sale.items.map((item, idx) => {
+                                            const originalPrice = item.basePrice * item.quantity;
+                                            const soldPrice = item.negotiatedPrice * item.quantity;
+                                            const isDiscounted = soldPrice < originalPrice;
+                                            
+                                            return (
+                                                <div key={idx} className="flex flex-col gap-0.5 text-slate-700">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-medium text-xs lg:text-sm line-clamp-1">{item.name}</span>
+                                                        <span className="text-[10px] font-bold bg-white/50 text-slate-600 px-1.5 py-0.5 rounded border border-white/40">x{item.quantity}</span>
+                                                    </div>
+                                                    {isDiscounted && (
+                                                        <div className="flex items-center gap-1.5 text-[10px]">
+                                                            <span className="text-slate-400 line-through">฿{originalPrice.toFixed(0)}</span>
+                                                            <span className="text-emerald-600 font-bold bg-emerald-50 px-1 rounded flex items-center gap-0.5">
+                                                                <Tag size={8} />
+                                                                ฿{soldPrice.toFixed(0)}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </td>
                                 <td className="px-4 py-3 lg:px-6 lg:py-4 text-right align-top">

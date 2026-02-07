@@ -6,7 +6,6 @@ import { Reports } from './pages/Reports';
 import { Archive } from './pages/Archive';
 import { Settings } from './pages/Settings';
 import { Arcade } from './pages/Arcade';
-import { Oracle } from './pages/Oracle';
 import { Menu, X, Cigarette } from 'lucide-react';
 import { checkAndArchiveOldSales } from './services/storeService';
 
@@ -60,8 +59,6 @@ const App: React.FC = () => {
         return <Reports />;
       case 'archive':
         return <Archive />;
-      case 'oracle':
-        return <Oracle />;
       case 'arcade':
         return <Arcade />;
       case 'settings':

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Product, CartItem, Sale } from '../types';
 import { subscribeToProducts, saveSale } from '../services/storeService';
-import { ShoppingCart, Trash2, Plus, Minus, CheckCircle, Search, Sparkles, Keyboard } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, CheckCircle, Search, Sparkles, Keyboard, ArrowDownRight, X, Layers } from 'lucide-react';
 import { interact } from '../services/interactionService';
 import { Tooltip } from '../components/Tooltip';
 
@@ -11,6 +11,7 @@ export const POS: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [checkoutComplete, setCheckoutComplete] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [multiplier, setMultiplier] = useState(1);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -28,14 +29,26 @@ export const POS: React.FC = () => {
 
   const addToCart = (product: Product) => {
     interact();
+    const qtyToAdd = multiplier;
+    
     const existing = cart.find(item => item.id === product.id);
     if (existing) {
-      if (existing.quantity < product.stock) {
-        setCart(cart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
+      // Check if adding quantity exceeds stock
+      if (existing.quantity + qtyToAdd <= product.stock) {
+        setCart(cart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + qtyToAdd } : item));
+      } else {
+        // If exceeds, just cap at max stock
+        setCart(cart.map(item => item.id === product.id ? { ...item, quantity: product.stock } : item));
       }
     } else {
-      setCart([...cart, { ...product, quantity: 1, negotiatedPrice: product.basePrice }]);
+      // Initial add
+      const safeQty = Math.min(qtyToAdd, product.stock);
+      setCart([...cart, { ...product, quantity: safeQty, negotiatedPrice: product.basePrice }]);
     }
+    
+    // Reset multiplier to 1 after action for safety, unless user wants sticky? 
+    // Standard POS behavior usually resets to avoid accidental large adds.
+    setMultiplier(1);
   };
 
   const removeFromCart = (id: string) => {
@@ -46,6 +59,7 @@ export const POS: React.FC = () => {
   const clearCart = () => {
     interact();
     setCart([]);
+    setMultiplier(1);
   };
 
   const updateQuantity = (id: string, delta: number) => {
@@ -67,6 +81,10 @@ export const POS: React.FC = () => {
 
   const calculateTotal = () => {
     return cart.reduce((sum, item) => sum + (item.negotiatedPrice * item.quantity), 0);
+  };
+
+  const getCartQty = (productId: string) => {
+      return cart.find(item => item.id === productId)?.quantity || 0;
   };
 
   const handleCheckout = async () => {
@@ -137,68 +155,105 @@ export const POS: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden relative rounded-none lg:rounded-l-3xl lg:glass-panel border-r-0 lg:border-r border-white/30">
         
         {/* Header */}
-        <div className="p-4 lg:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shrink-0 z-10">
-            <div className="flex justify-between w-full sm:w-auto items-center">
-                <div>
-                    <h2 className="text-xl lg:text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-                        Store Front 
-                        <div className="group relative flex items-center justify-center ml-1">
-                            <Keyboard size={18} className="text-slate-400 hover:text-indigo-600 transition-colors cursor-help" />
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-40 bg-slate-800 text-white text-xs rounded-lg p-3 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none">
-                                <div className="font-bold mb-2 border-b border-slate-600 pb-1 text-center">Shortcuts</div>
-                                <div className="flex justify-between mb-1"><span>Search</span> <span className="font-mono bg-slate-700 px-1 rounded text-[10px] min-w-[20px] text-center">/</span></div>
-                                <div className="flex justify-between mb-1"><span>Charge</span> <span className="font-mono bg-slate-700 px-1 rounded text-[10px]">Ctrl+Ent</span></div>
-                                <div className="flex justify-between"><span>Clear</span> <span className="font-mono bg-slate-700 px-1 rounded text-[10px]">Ctrl+Del</span></div>
+        <div className="p-4 lg:p-6 flex flex-col gap-4 shrink-0 z-10">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div className="flex justify-between w-full sm:w-auto items-center">
+                    <div>
+                        <h2 className="text-xl lg:text-2xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
+                            Store Front 
+                            <div className="group relative flex items-center justify-center ml-1">
+                                <Keyboard size={18} className="text-slate-400 hover:text-indigo-600 transition-colors cursor-help" />
+                                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-40 bg-slate-800 text-white text-xs rounded-lg p-3 shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 pointer-events-none">
+                                    <div className="font-bold mb-2 border-b border-slate-600 pb-1 text-center">Shortcuts</div>
+                                    <div className="flex justify-between mb-1"><span>Search</span> <span className="font-mono bg-slate-700 px-1 rounded text-[10px] min-w-[20px] text-center">/</span></div>
+                                    <div className="flex justify-between mb-1"><span>Charge</span> <span className="font-mono bg-slate-700 px-1 rounded text-[10px]">Ctrl+Ent</span></div>
+                                    <div className="flex justify-between"><span>Clear</span> <span className="font-mono bg-slate-700 px-1 rounded text-[10px]">Ctrl+Del</span></div>
+                                </div>
                             </div>
-                        </div>
-                    </h2>
-                    <p className="text-xs lg:text-sm text-slate-600 font-medium">Select items to add to cart</p>
+                        </h2>
+                    </div>
+                </div>
+                
+                <div className="relative w-full sm:w-72 group">
+                    <input 
+                        ref={searchInputRef}
+                        type="text" 
+                        placeholder="Search products... (/)" 
+                        className="w-full bg-white/40 backdrop-blur-md border border-white/50 rounded-xl py-2.5 pl-10 pr-10 text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all shadow-sm group-hover:bg-white/60 placeholder-slate-500"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-indigo-600 transition-colors" size={18} />
+                    {searchTerm && (
+                        <button 
+                            onClick={() => { interact(); setSearchTerm(''); searchInputRef.current?.focus(); }}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 hover:bg-white/50 rounded-full transition-all"
+                        >
+                            <X size={16} />
+                        </button>
+                    )}
                 </div>
             </div>
-            
-            <div className="relative w-full sm:w-72 group">
-                <input 
-                    ref={searchInputRef}
-                    type="text" 
-                    placeholder="Search products... (/)" 
-                    className="w-full bg-white/40 backdrop-blur-md border border-white/50 rounded-xl py-2.5 pl-10 pr-4 text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all shadow-sm group-hover:bg-white/60 placeholder-slate-500"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-hover:text-indigo-600 transition-colors" size={18} />
+
+            {/* Quick Multiplier Toggles */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wide mr-1">Qty:</span>
+                {[1, 2, 3, 4, 5, 6, 10, 12].map(num => (
+                    <button
+                        key={num}
+                        onClick={() => { interact(); setMultiplier(num); }}
+                        className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs lg:text-sm font-bold border transition-all ${
+                            multiplier === num 
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-md transform scale-105' 
+                            : 'bg-white/40 text-slate-600 border-white/50 hover:bg-white/60 hover:border-white/60'
+                        }`}
+                    >
+                        x{num}
+                    </button>
+                ))}
             </div>
         </div>
 
         {/* Product Grid */}
-        <div className="flex-1 overflow-y-auto p-4 lg:p-6 scroll-smooth pb-32 lg:pb-6"> 
+        <div className="flex-1 overflow-y-auto px-4 lg:px-6 scroll-smooth pb-32 lg:pb-6"> 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-5">
-            {filteredProducts.map((product, idx) => (
-                <button key={product.id} 
-                    onClick={() => addToCart(product)}
-                    className="glass-card rounded-2xl p-3 lg:p-5 text-left flex flex-col h-full justify-between relative overflow-hidden group hover:scale-[1.02] transition-all duration-300"
-                    style={{ animation: `fadeIn 0.4s ease-out ${idx * 0.05}s forwards`, opacity: 0 }}
-                >
-                    <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300"></div>
-                    
-                    <div className="flex justify-between items-start mb-2 lg:mb-3">
-                         {product.brand && product.brand !== 'General' ? (
-                             <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/50 backdrop-blur-sm px-2 py-0.5 rounded-full uppercase tracking-wide border border-indigo-200 truncate max-w-[70%]">
-                                {product.brand}
-                             </span>
-                         ) : <span></span>}
-                         <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/50 backdrop-blur-sm px-2 py-0.5 rounded-full border border-emerald-200 whitespace-nowrap">
-                            {product.stock}
-                        </span>
-                    </div>
+            {filteredProducts.map((product, idx) => {
+                const inCartQty = getCartQty(product.id);
+                return (
+                    <button key={product.id} 
+                        onClick={() => addToCart(product)}
+                        className={`glass-card rounded-2xl p-3 lg:p-5 text-left flex flex-col h-full justify-between relative overflow-hidden group hover:scale-[1.02] transition-all duration-300 ${inCartQty > 0 ? 'ring-2 ring-indigo-500/50 bg-indigo-50/30' : ''}`}
+                        style={{ animation: `fadeIn 0.4s ease-out ${idx * 0.05}s forwards`, opacity: 0 }}
+                    >
+                        {/* Selected Indicator Overlay */}
+                        {inCartQty > 0 && (
+                            <div className="absolute top-2 right-2 bg-indigo-600 text-white text-[10px] lg:text-xs font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1 z-10 animate-fade-in">
+                                <CheckCircle size={10} /> {inCartQty} in cart
+                            </div>
+                        )}
 
-                    <h3 className="font-bold text-slate-800 leading-snug mb-3 text-sm lg:text-lg group-hover:text-indigo-700 transition-colors line-clamp-2">{product.name}</h3>
-                    
-                    <div className="flex justify-between items-center pt-3 border-t border-slate-200/50 mt-auto">
-                        <span className="text-[10px] lg:text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:inline">Price</span>
-                        <span className="text-base lg:text-xl font-bold text-slate-900 font-mono tracking-tight group-hover:scale-110 transition-transform origin-right">฿{product.basePrice.toFixed(2)}</span>
-                    </div>
-                </button>
-            ))}
+                        <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500 transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300"></div>
+                        
+                        <div className="flex justify-between items-start mb-2 lg:mb-3">
+                            {product.brand && product.brand !== 'General' ? (
+                                <span className="text-[10px] font-bold text-indigo-700 bg-indigo-100/50 backdrop-blur-sm px-2 py-0.5 rounded-full uppercase tracking-wide border border-indigo-200 truncate max-w-[70%]">
+                                    {product.brand}
+                                </span>
+                            ) : <span></span>}
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/50 backdrop-blur-sm px-2 py-0.5 rounded-full border border-emerald-200 whitespace-nowrap">
+                                {product.stock}
+                            </span>
+                        </div>
+
+                        <h3 className="font-bold text-slate-800 leading-snug mb-3 text-sm lg:text-lg group-hover:text-indigo-700 transition-colors line-clamp-2">{product.name}</h3>
+                        
+                        <div className="flex justify-between items-center pt-3 border-t border-slate-200/50 mt-auto">
+                            <span className="text-[10px] lg:text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:inline">Price</span>
+                            <span className="text-base lg:text-xl font-bold text-slate-900 font-mono tracking-tight group-hover:scale-110 transition-transform origin-right">฿{product.basePrice.toFixed(2)}</span>
+                        </div>
+                    </button>
+                );
+            })}
             </div>
         </div>
       </div>
@@ -239,42 +294,50 @@ export const POS: React.FC = () => {
                 </div>
              </div>
           ) : (
-            cart.map(item => (
-              <div key={item.id} className="bg-white/60 backdrop-blur-md rounded-xl border border-white/50 p-3 lg:p-4 shadow-sm hover:shadow-md transition-all duration-300 group relative overflow-hidden animate-fade-in">
-                <div className="absolute top-0 right-0 p-2 lg:opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button 
-                        onClick={() => removeFromCart(item.id)} 
-                        className="bg-rose-100 text-rose-500 hover:bg-rose-500 hover:text-white p-1 rounded-md transition-colors"
-                    >
-                        <Trash2 size={14} />
-                    </button>
-                </div>
+            cart.map(item => {
+              const isDiscounted = item.negotiatedPrice < item.basePrice;
+              return (
+                <div key={item.id} className="bg-white/60 backdrop-blur-md rounded-xl border border-white/50 p-3 lg:p-4 shadow-sm hover:shadow-md transition-all duration-300 group relative overflow-hidden animate-fade-in">
+                  <div className="absolute top-0 right-0 p-2 lg:opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                          onClick={() => removeFromCart(item.id)} 
+                          className="bg-rose-100 text-rose-500 hover:bg-rose-500 hover:text-white p-1 rounded-md transition-colors"
+                      >
+                          <Trash2 size={14} />
+                      </button>
+                  </div>
 
-                <div className="flex justify-between items-start mb-2 pr-6">
-                    <h4 className="font-bold text-slate-800 text-xs lg:text-sm leading-tight line-clamp-1">{item.name}</h4>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                   <div className="flex items-center bg-slate-100/50 rounded-lg p-0.5 lg:p-1 shadow-inner border border-slate-200/50">
-                      <button onClick={() => updateQuantity(item.id, -1)} className="w-6 h-6 lg:w-7 lg:h-7 flex items-center justify-center rounded-md bg-white text-slate-600 shadow-sm hover:text-indigo-600 active:scale-90 transition-all"><Minus size={12} strokeWidth={3} /></button>
-                      <span className="w-8 lg:w-10 text-center text-xs lg:text-sm font-bold text-slate-700">{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.id, 1)} className="w-6 h-6 lg:w-7 lg:h-7 flex items-center justify-center rounded-md bg-white text-slate-600 shadow-sm hover:text-indigo-600 active:scale-90 transition-all"><Plus size={12} strokeWidth={3} /></button>
-                   </div>
+                  <div className="flex justify-between items-start mb-2 pr-6">
+                      <h4 className="font-bold text-slate-800 text-xs lg:text-sm leading-tight line-clamp-1">{item.name}</h4>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center bg-slate-100/50 rounded-lg p-0.5 lg:p-1 shadow-inner border border-slate-200/50">
+                        <button onClick={() => updateQuantity(item.id, -1)} className="w-6 h-6 lg:w-7 lg:h-7 flex items-center justify-center rounded-md bg-white text-slate-600 shadow-sm hover:text-indigo-600 active:scale-90 transition-all"><Minus size={12} strokeWidth={3} /></button>
+                        <span className="w-8 lg:w-10 text-center text-xs lg:text-sm font-bold text-slate-700">{item.quantity}</span>
+                        <button onClick={() => updateQuantity(item.id, 1)} className="w-6 h-6 lg:w-7 lg:h-7 flex items-center justify-center rounded-md bg-white text-slate-600 shadow-sm hover:text-indigo-600 active:scale-90 transition-all"><Plus size={12} strokeWidth={3} /></button>
+                    </div>
 
-                   <div className="flex items-center gap-1 bg-white/80 px-2 py-0.5 rounded-lg border border-slate-200/60 focus-within:border-indigo-400 shadow-sm">
-                        <span className="text-slate-500 text-[10px] font-bold">฿</span>
-                        <input 
-                            type="number" 
-                            min="0"
-                            step="0.1"
-                            className="w-16 text-right text-sm lg:text-base font-bold text-slate-900 bg-transparent outline-none"
-                            value={item.negotiatedPrice}
-                            onChange={(e) => updatePrice(item.id, Number(e.target.value))}
-                        />
-                   </div>
+                    <div className="flex flex-col items-end">
+                        {isDiscounted && (
+                            <span className="text-[10px] text-slate-400 line-through mr-1 mb-0.5">฿{item.basePrice}</span>
+                        )}
+                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border focus-within:border-indigo-400 shadow-sm transition-colors ${isDiscounted ? 'bg-amber-50 border-amber-200' : 'bg-white/80 border-slate-200/60'}`}>
+                              <span className={`text-[10px] font-bold ${isDiscounted ? 'text-amber-600' : 'text-slate-500'}`}>฿</span>
+                              <input 
+                                  type="number" 
+                                  min="0"
+                                  step="0.1"
+                                  className={`w-16 text-right text-sm lg:text-base font-bold bg-transparent outline-none ${isDiscounted ? 'text-amber-700' : 'text-slate-900'}`}
+                                  value={item.negotiatedPrice}
+                                  onChange={(e) => updatePrice(item.id, Number(e.target.value))}
+                              />
+                        </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
